@@ -28,7 +28,7 @@
   {
     "id": "T003",
     "description": "Run actual supported entry override, user-type/phase/catalog-rate, minimum-duration and rounding cases plus multiple entries with different proven rates. Include a positive-duration zero-rate case and unavailable/zero-duration evidence. Assert unchanged compute totals and semantic rate behavior, comparing actual rendered values rather than fabricated row objects.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F010",
       "F011",
@@ -40,7 +40,7 @@
   {
     "id": "T004",
     "description": "Generate and reload a real invoice, capture stored version-2 snapshots and semantic HTML/PDF content, then edit source ticket number/title/description and permitted source time metadata. Reload through a fresh production read and regenerate the PDF. Assert unchanged billed content, rates and amounts; disclose any direct DB source edit required because invoiced records are locked.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F001",
       "F010",
@@ -76,7 +76,7 @@
   {
     "id": "T007",
     "description": "Produce linked invoices through generation, then deliberately null selected stored snapshots to model legacy and partial history. Test a fully legacy invoice, one eligible and one unavailable charge, and a charge with only some valid linked snapshots (using a supported aggregate path or a disclosed historical aggregate fixture). Assert original rows or complete replacements partition charges exactly; partial snapshot contributions never appear again in the primary table.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F001",
       "F002",
@@ -90,7 +90,7 @@
   {
     "id": "T008",
     "description": "Use explicitly disclosed historical/corrupt snapshot fixtures for invalid versions, malformed amounts, missing link snapshots, duplicate/conflicting attribution, and net mismatch. Pass them through real reader and projection. Assert affected original charges survive once, no invalid values become zero, whole-invoice reconciliation holds, and no current ticket/time lookup repairs history.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F001",
       "F002",
@@ -152,7 +152,7 @@
   {
     "id": "T013",
     "description": "Through table/transform controls, select billed-time sources and use sort/filter with zero-row and populated samples. Verify fields remain discoverable and filtering displays only matching time rows. Exercise supported grouping and aggregation, assert wrapper fields match evaluator output, and add nested entry fields only in the correct scope; no generic item presets leak onto unsupported output shapes.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F018",
       "F019",
@@ -201,7 +201,7 @@
   {
     "id": "T017",
     "description": "Sign in as a client-portal user and follow the actual invoice/ticket routes available to that user. Record whether invoice-specific billed entries/rates exist and the required access conditions. Verify the default instruction requests a billed-time breakdown from the service provider, enable optional ticket-update guidance only if supported, and review the catalog/help against the tested primary and optional-detail flows.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F026",
       "F027"
@@ -225,7 +225,7 @@
   {
     "id": "T019",
     "description": "Create source fixtures with distinct public ticket content, private ticket/time-note sentinels, and another tenant's time links. Generate/read through authenticated tenant-scoped production paths, inspect actual persisted snapshots and renderer data, and render primary/optional/transformed detail. Assert only permitted content and ownership appear and unrelated tenant records cannot supply coverage or rows.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F001",
       "F002",

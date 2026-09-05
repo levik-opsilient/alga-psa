@@ -482,9 +482,13 @@ const TransformsWorkspace: React.FC<Props> = ({
           : { bindingAliases: INVOICE_TEMPLATE_BINDING_ALIASES }
       );
       const outputRows = Array.isArray(evaluation.output) ? evaluation.output.filter(isRecord) : [];
+      const outputFields = resolveCollectionDescriptor(
+        ast.transforms?.outputBindingId ?? '', ast.transforms, ast,
+      )?.fields.map((field) => field.name) ?? [];
       return {
+        hasOutput: Array.isArray(evaluation.output),
         issues: [] as PreviewIssue[],
-        rowPaths: Array.from(discoverFieldPaths(outputRows[0] ?? {})).filter((path) => !path.includes('*')).sort(),
+        rowPaths: Array.from(new Set([...outputFields, ...discoverFieldPaths(outputRows[0] ?? {})])).filter((path) => !path.includes('*')).sort(),
         groups: evaluation.groups ? (evaluation.groups as unknown as Array<Record<string, unknown>>) : null,
         rows: outputRows,
       };
@@ -1459,7 +1463,7 @@ const TransformsWorkspace: React.FC<Props> = ({
                 </div>
               ))}
             </div>
-          ) : outputPreview.rows.length > 0 ? (
+          ) : outputPreview.hasOutput ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
                 <span>

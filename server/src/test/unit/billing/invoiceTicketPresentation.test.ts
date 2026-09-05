@@ -15,7 +15,7 @@ import { buildQuoteTemplateBindings } from '@alga-psa/billing/lib/quote-template
 import { buildSalesOrderTemplateBindings } from '@alga-psa/billing/lib/sales-order-template-ast/bindings';
 
 // Source inputs drive the actual calculator. Only its synchronous tax port is a no-tax fake.
-function fixture(overtimeRate = 22500, entryOverrides: Record<string, unknown>[] = []) {
+function fixture(overtimeRate = 22500, entryOverrides: Record<string, unknown>[] = [], configure?: (inputs: TimeBasedChargeComputeInputs) => void) {
   const start = '2026-08-01T00:00:00Z', end = '2026-09-01T00:00:00Z';
   const inputs: TimeBasedChargeComputeInputs = {
     billingPeriod: { startDate: start, endDate: end },
@@ -35,6 +35,7 @@ function fixture(overtimeRate = 22500, entryOverrides: Record<string, unknown>[]
     getTaxInfoFromService: () => ({ taxRegion: null, isTaxable: false }), getLocationTaxRegionCode: () => null,
     getClientDefaultTaxRegionCode: () => null, isTaxExemptForProfile: () => false, calculateTax: () => ({ taxAmount: 0, taxRate: 0 }),
   };
+  configure?.(inputs);
   const generated = computeTimeBasedCharges(inputs, taxContext).charges;
   const charges = generated.map((charge, index) => ({
     item_id: `charge-${index}`, invoice_id: 'invoice', tenant: 'tenant', billing_charge_type: charge.type,
@@ -72,6 +73,66 @@ describe('ticket presentation from actual calculation', () => {
     expect(result.charges.map((charge) => charge.workItemSnapshot)).toEqual(generated.map((charge) => charge.workItemSnapshot));
     expect(result.charges[0].workItemSnapshot).toMatchObject({ title: 'Public title', description: 'Public description', rateKind: 'mixed' });
     expect(result.charges[1].workItemSnapshot).toMatchObject({ title: 'Public task', workItemId: 'task-a', ticketNumber: null });
+  });
+  it.each([
+    { name: 'entry override', entry: { custom_rate: 17000 }, minutes: 60, amount: 17000, rate: 17000 },
+    { name: 'catalog currency price', entry: { custom_rate: null, currency_rate: 13000 }, minutes: 60, amount: 13000, rate: 13000 },
+    { name: 'user type price', entry: { custom_rate: null, user_type: 'engineer', currency_rate: 13000 }, minutes: 60, amount: 16000, rate: 16000 },
+    { name: 'minimum duration', entry: { billable_duration: 10 }, minutes: 30, amount: 7500, rate: 15000 },
+    { name: 'rounded duration', entry: { billable_duration: 31 }, minutes: 45, amount: 11250, rate: 15000 },
+    { name: 'proven free time', entry: { custom_rate: 0 }, minutes: 60, amount: 0, rate: 0 },
+    { name: 'phase override', entry: { project_id: 'project', project_phase_id: 'phase' }, minutes: 60, amount: 20000, rate: 20000 },
+  ])('renders honest rate evidence for $name from actual calculation', async ({ entry, minutes, amount, rate }) => {
+    const { vm, charges, generated, inputs, taxContext } = fixture(22500, [{ billable_duration: 60, ...entry }], (inputs) => {
+      inputs.timeEntries = [inputs.timeEntries[0]];
+      inputs.plan.enable_overtime = false;
+      inputs.serviceConfigMap.set('service-0', { config: { config_id: 'hourly', hourly_rate: 15000, minimum_billable_time: 30, round_up_to_nearest: 15 }, userTypeRates: new Map([['engineer', 16000]]) });
+      inputs.resolvePhaseRateOverride = (phaseId) => phaseId === 'phase' ? { rate: 20000, override_service_name: 'Phase service' } : null;
+    });
+    expect(generated[0].workItemSnapshot).toMatchObject({ billedMinutes: minutes, netAmount: amount, rateKind: 'uniform', uniformRate: rate });
+    const normalized = normalizeResolvedContractCharge({ obligationId: 'rate', tenantId: 'tenant', charge: { kind: 'hourly', executionMode: 'live', inputs, taxContext } });
+    expect(calculateNormalizedContractCharge(normalized.obligation.facts, 'live', taxContext).charges).toEqual(generated);
+    attachInvoiceTimeCollections(vm, charges); reconcile(vm, charges);
+    const evaluated = evaluateTemplateAst(ast, vm as unknown as Record<string, unknown>);
+    const { html } = await renderEvaluatedTemplateAst(ast, evaluated);
+    expect(html).toContain(new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(rate / 100));
+    expect(html).toContain(new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount / 100));
+  });
+  it('renders zero-duration calculation as unknown without losing its zero charge', async () => {
+    const { vm, charges, generated } = fixture(22500, [{ billable_duration: 0 }], (inputs) => {
+      inputs.timeEntries = [inputs.timeEntries[0]];
+    });
+    expect(generated[0].total).toBe(0);
+    expect(generated[0].workItemSnapshot).toMatchObject({ billedMinutes: 0, netAmount: 0, rateKind: 'unknown', uniformRate: null });
+    attachInvoiceTimeCollections(vm, charges); reconcile(vm, charges);
+    const { html } = await renderEvaluatedTemplateAst(ast, evaluateTemplateAst(ast, vm as unknown as Record<string, unknown>));
+    expect(html).toContain('Rate unavailable');
+    expect(html).toContain('$0.00');
+  });
+  it('preserves phase pricing and project cap ownership through normalized document calculation', async () => {
+    const { inputs, taxContext } = fixture(22500, [0, 1, 2].map(() => ({
+      work_item_type: 'project_task', work_item_id: 'task', project_id: 'project', project_phase_id: 'phase',
+      project_task_name: 'Public task', ticket_number: null,
+    })));
+    inputs.resolvePhaseRateOverride = () => ({ rate: 20000, override_service_name: 'Phase service' });
+    inputs.getProjectChargeConfig = () => ({ project_id: 'project', config_id: 'cap', billing_model: 'time_and_materials' });
+    const direct = computeTimeBasedCharges(inputs, taxContext);
+    const normalized = normalizeResolvedContractCharge({ obligationId: 'time', tenantId: 'tenant',
+      charge: { kind: 'hourly', executionMode: 'live', inputs: { ...inputs, clientContractLine: { ...inputs.clientContractLine, tenant: 'tenant', currency_code: 'USD' } }, taxContext } });
+    const roundtripped = calculateNormalizedContractCharge(normalized.obligation.facts, 'live', normalized.taxContext);
+    expect(roundtripped.charges).toEqual(direct.charges);
+    const { calculateContractBilling } = await import('@alga-psa/billing/lib/billing/domain/calculateContractBilling');
+    const result = calculateContractBilling({ schemaVersion: 1,
+      execution: { mode: 'live', tenantId: 'tenant', calculationId: 'cap-regression', asOf: '2026-09-01' },
+      document: { clientId: 'client', currencyCode: 'USD', invoiceWindow: { start: '2026-08-01', endExclusive: '2026-09-01' } },
+      obligations: [normalized.obligation], taxContexts: { [normalized.obligation.taxContextKey]: taxContext },
+      projectCaps: { configsById: new Map([['cap', { config_id: 'cap', project_id: 'project', cap_amount: 20000, cap_notify_thresholds: [80] } as any]]), capUsageByConfigId: new Map() },
+    });
+    expect(result.subtotal).toBe(20000);
+    expect(result.sourceCharges.reduce((sum, charge) => sum + charge.total, 0)).toBe(20000);
+    expect(result.lines.reduce((sum, line) => sum + line.netAmount, 0)).toBe(20000);
+    expect(result.sourceCharges.map((charge) => (charge as any).workItemSnapshot.netAmount)).toEqual(direct.charges.map((charge) => charge.workItemSnapshot!.netAmount));
+    expect(result.projectCapThresholdCrossings).toEqual([{ configId: 'cap', projectId: 'project', threshold: 80, previousBilled: 0, newBilled: 20000 }]);
   });
   it('partitions charges and preserves both kinds of mixed evidence through HTML', async () => {
     const { vm, charges, generated } = fixture();

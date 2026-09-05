@@ -199,6 +199,10 @@ export function normalizeResolvedContractCharge(input: {
           ticketTitle: entry.ticket_title,
           ticketDescription: entry.ticket_description,
           projectTaskName: entry.project_task_name,
+          projectId: entry.project_id,
+          projectPhaseId: entry.project_phase_id,
+          phaseRateOverride: charge.inputs.resolvePhaseRateOverride?.(entry.project_phase_id, entry.service_id),
+          projectChargeConfig: entry.project_id ? charge.inputs.getProjectChargeConfig?.(entry.project_id) : undefined,
           billingProfileId: entry.work_item_billing_profile_id,
         })),
       };
@@ -443,12 +447,18 @@ export function calculateNormalizedContractCharge(
             ticket_title: entry.ticketTitle,
             ticket_description: entry.ticketDescription,
             project_task_name: entry.projectTaskName,
+            project_id: entry.projectId,
+            project_phase_id: entry.projectPhaseId,
             work_item_billing_profile_id: entry.billingProfileId,
           })),
           contractCurrency: facts.line.currencyCode,
           billingProfile: facts.billingProfile,
-          resolvePhaseRateOverride: null,
-          getProjectChargeConfig: null,
+          resolvePhaseRateOverride: (phaseId, serviceId) => facts.activity.find(
+            (entry) => entry.projectPhaseId === phaseId && entry.serviceId === serviceId,
+          )?.phaseRateOverride ?? null,
+          getProjectChargeConfig: (projectId) => facts.activity.find(
+            (entry) => entry.projectId === projectId,
+          )?.projectChargeConfig,
         },
       };
       break;
@@ -502,6 +512,7 @@ export function calculateNormalizedContractCharge(
           billingPeriod: facts.billingPeriod!,
           clientContractLine,
           client,
+          timing: facts.timing,
           config: {
             config_id: facts.configuration.configurationId,
             service_id: facts.configuration.serviceId,

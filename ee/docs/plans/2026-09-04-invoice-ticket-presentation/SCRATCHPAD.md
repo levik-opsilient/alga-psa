@@ -84,3 +84,11 @@ git diff --check
 - Repeated actual baseline generation/immutability/CSV/credit/manual-adjustment acceptance. Added real standalone cap plus supported inline additions, multi-tax 74-entry production generation, UI-saved named nested aliases, and four-page French PDF inspection. See `evidence/revision-evidence.md` for exact paths, source/template IDs and mocks.
 - Recurring bucket generation independently fails required recurring linkage and rolls back. Contracted recurring project time also loses cap metadata before adjustment. Relevant billing files are byte-identical to reviewed commit d60d83bb96; source/generated evidence is preserved. These are unresolved billing blockers, not successful acceptance runs.
 - T006 and T010 now implemented for multi-tax financial behavior and the cap/inline-addition alternative. Broader matrix entries remain false where full approved criteria were not exercised. Named repeating regions were seeded through the supported save action, then columns/transforms were edited, saved and reopened through UI; entirely visual region creation is not claimed.
+
+## September 5 narrow mitigation
+
+- Baseline and ten-gap map: [evidence/mitigation-evidence.md](evidence/mitigation-evidence.md).
+- Repaired missing recurring bucket timing, lost project/phase normalization facts and cap application before contract pricing. Fresh source-driven bucket and contracted recurring-cap persistence pass. Authenticated HTTP additionally exposed discarded schedule/period identity keys; schema preservation and validation now pass HTTP generation/read.
+- Empty filter output exposed a misleading configure state and missing fields. Shared descriptors now retain evaluated empty output fields; grouped/ungrouped control regressions and live screenshots pass.
+- Seven baseline open cases now pass: T003, T004, T007, T008, T013, T017, T019. T009, T015, T016 remain incomplete; see the evidence table for missing producer/authoring capabilities and remaining locale matrix. No broad billing or accounting changes were made to manufacture closure.
+- Final focused run: 20 suites / 291 tests. Production generation/persistence: 5 scenarios. Actual authenticated HTTP test: pass. Billing/server typechecks: exit 0 after the final UI repair. Final server build and immutable artifact manifest are recorded in the mitigation evidence.

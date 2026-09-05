@@ -1,5 +1,7 @@
 # Invoice ticket presentation draft verification
 
+**Latest mitigation:** [mitigation-evidence.md](mitigation-evidence.md) records repaired recurring bucket/cap generation, authenticated HTTP generation/read, immutable before/after PDFs, malformed-history guards, portal walkthrough and empty-transform repair. Seven of the ten open cases pass; T009, T015 and T016 remain incomplete. The sections below are historical evidence.
+
 **Review revisions (September 5):** see [revision-evidence.md](revision-evidence.md) for the three corrected designer defects, new cap/inline-adjustment and multi-tax generation, saved nested aliases, multi-page PDF inspection, and independently reproduced recurring billing blockers. The remainder of this file describes the earlier draft run.
 
 Review `attachTicketPresentation` in `packages/billing/src/lib/adapters/invoiceAdapters.ts` first. A charge is replaced only after every owned immutable link passes validation and its snapshot net amounts equal the canonical charge exactly. Then review `invoiceTimeSnapshot.ts`, calculator snapshot creation, and the saved-layout preview/PDF evidence below.

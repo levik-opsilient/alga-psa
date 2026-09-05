@@ -1,5 +1,7 @@
 # Review revisions — September 5, 2026
 
+**Follow-up:** [mitigation-evidence.md](mitigation-evidence.md) supersedes the recurring bucket/cap blockers and portal/authentication gaps described here. It records fresh command receipts and the three acceptance cases still incomplete. This file preserves the earlier reproduction and verification history.
+
 This run fixes the three probes supplied in `/tmp/invoice-ticket-lead-review/invoiceTicketReviewerProbe.test.ts`, using the invoice generated during the preceding draft run. Review `collectionResolution.ts`, evaluator collection handling, and the canvas's neutral-data/localized-display boundary first. Then inspect the UI-saved nested alias and PDF below.
 
 ## Changes
