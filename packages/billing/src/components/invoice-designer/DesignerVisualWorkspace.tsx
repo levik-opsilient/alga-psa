@@ -329,7 +329,7 @@ export const DesignerVisualWorkspace: React.FC<DesignerVisualWorkspaceProps> = (
       </TabsList>
 
       <TabsContent value="design" className="pt-3">
-        <CanvasDocumentPreviewContext.Provider value={{ data: authoritativePreview?.presentationData ?? previewData, locale: authoritativePreview?.effectiveLocale ?? previewState.selectedLocale }}>
+        <CanvasDocumentPreviewContext.Provider value={{ data: previewData, presentationLabels: authoritativePreview?.presentationLabels, locale: authoritativePreview?.effectiveLocale ?? previewState.selectedLocale }}>
           <DesignerShell />
         </CanvasDocumentPreviewContext.Provider>
       </TabsContent>

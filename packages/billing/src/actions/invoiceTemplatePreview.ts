@@ -2,7 +2,7 @@
 'use server'
 
 import crypto from 'crypto';
-import { localizeTimePresentation } from '../lib/invoice-template-ast/timePresentationLocalization';
+import { timePresentationLabels } from '../lib/invoice-template-ast/timePresentationLocalization';
 import { withAuth } from '@alga-psa/auth';
 import { hasPermission } from '@alga-psa/auth/rbac';
 import type { WasmInvoiceViewModel } from '@alga-psa/types';
@@ -34,7 +34,7 @@ type AuthoritativePreviewDiagnostic = {
 };
 
 type AuthoritativePreviewResult = {
-  presentationData?: WasmInvoiceViewModel;
+  presentationLabels?: Record<string, string>;
   effectiveLocale?: string;
   success: boolean;
   sourceHash: string | null;
@@ -160,7 +160,7 @@ export const runAuthoritativeInvoiceTemplatePreview = withAuth(
       const localized = await localizeTemplateAstForLocale(validation.ast, input.locale);
       const rendered = await renderEvaluatedTemplateAst(localized.ast, evaluation, { locale: localized.locale, t: localized.t });
       return {
-        presentationData: localizeTimePresentation(input.invoiceData, localized.t),
+        presentationLabels: timePresentationLabels(localized.t),
         effectiveLocale: localized.locale ?? 'en',
         success: true,
         sourceHash,

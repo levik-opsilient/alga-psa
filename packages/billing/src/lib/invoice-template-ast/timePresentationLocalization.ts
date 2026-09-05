@@ -33,3 +33,26 @@ export function localizeTimePresentation<T>(value: T, t: TemplateLabelTranslator
   };
   return visit(value) as T;
 }
+
+/** A serializable document-locale dictionary for the canvas. */
+export const timePresentationLabels = (t: TemplateLabelTranslator): Record<string, string> =>
+  Object.fromEntries(Object.entries(labels).map(([key, defaultValue]) => [key, t(key, { defaultValue })]));
+
+/** Presentation fields are derived, never locale-dependent transform inputs.
+ * Recover them from their semantic provenance if a caller supplies display data.
+ */
+export function neutralizeTimePresentation<T>(value: T): T {
+  const visit = (input: unknown): unknown => {
+    if (Array.isArray(input)) return input.map(visit);
+    if (!input || typeof input !== 'object') return input;
+    const row = Object.fromEntries(Object.entries(input).map(([key, child]) => [key, visit(child)]));
+    if (row.timePresentation === true) {
+      if (row.rateKind === 'mixed' || row.rateKind === 'unknown') row.rateDisplay = null;
+      else if (row.rateKind === 'uniform') row.rateDisplay = row.rate;
+      if (typeof row.labelKey === 'string' && labels[row.labelKey]) row.label = '';
+    }
+    if (typeof row.ticketCoverageStatus === 'string') row.ticketCoverageNote = '';
+    return row;
+  };
+  return visit(value) as T;
+}

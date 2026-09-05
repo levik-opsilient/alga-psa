@@ -63,7 +63,7 @@
   {
     "id": "T006",
     "description": "Use supported flows to add taxable/non-taxable charges, a line discount, a negative credit and a zero row; apply account credit through its supported action. Render the complete primary table and reconcile signed line amounts, stored subtotal/tax/total, discount treatment, applied credit and balance independently. Verify a multi-tax-rate ticket does not display a fabricated single tax rate.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F003",
       "F005",
@@ -113,7 +113,7 @@
   {
     "id": "T010",
     "description": "Exercise the existing project-cap write-down path and a representative supported bucket/inline-adjustment case. Compare computed snapshot amounts to final persisted charges. Where they differ, verify complete canonical-row fallback, no residual allocation, correct final net/tax values, and no stale uniform rate claim in the by-ticket table.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F004",
       "F008",

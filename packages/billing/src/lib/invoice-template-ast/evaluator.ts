@@ -13,6 +13,7 @@ import {
   resolveTemplateStrategy,
 } from './strategies';
 import { validateTemplateAst } from './schema';
+import { neutralizeTimePresentation } from './timePresentationLocalization';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -437,7 +438,7 @@ export const evaluateTemplateAst = (
     );
   }
 
-  const invoiceData = isRecord(invoiceDataInput) ? invoiceDataInput : {};
+  const invoiceData = isRecord(invoiceDataInput) ? neutralizeTimePresentation(invoiceDataInput) : {};
   const bindings: Record<string, unknown> = {
     invoice: invoiceData,
   };
@@ -447,9 +448,12 @@ export const evaluateTemplateAst = (
     bindings[bindingId] = resolved === undefined ? binding.fallback : resolved;
   }
   for (const [bindingId, binding] of Object.entries(ast.bindings?.collections ?? {})) {
-    bindings[bindingId] = cloneRecordArray(
-      getPathValue(invoiceData, resolveBindingPath(binding.path, options?.bindingAliases))
-    );
+    const path = resolveBindingPath(binding.path, options?.bindingAliases);
+    const value = getPathValue(invoiceData, path);
+    // Only the documented optional historical collections may be absent.
+    // Preserve scalar/missing custom bindings for diagnostics at their use site.
+    bindings[bindingId] = value == null && ['timeEntries', 'ticketGroups', 'ticketPresentationRows'].includes(path)
+      ? [] : Array.isArray(value) ? cloneRecordArray(value) : value;
   }
 
   if (!ast.transforms) {

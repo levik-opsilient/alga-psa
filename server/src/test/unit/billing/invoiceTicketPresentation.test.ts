@@ -8,7 +8,7 @@ import { evaluateTemplateAst } from '@alga-psa/billing/lib/invoice-template-ast/
 import { renderEvaluatedTemplateAst } from '@alga-psa/billing/lib/invoice-template-ast/react-renderer';
 import { localizeTimePresentation } from '@alga-psa/billing/lib/invoice-template-ast/timePresentationLocalization';
 import { resolveCollectionDescriptor } from '@alga-psa/billing/lib/invoice-template-ast/collectionDescriptors';
-import { resolveCanvasCollection, resolveCanvasRowScope } from '@alga-psa/billing/components/invoice-designer/preview/previewBindings';
+import { resolveCanvasCollection, resolveCanvasRowScope, resolveTableItemBindingRawValue } from '@alga-psa/billing/components/invoice-designer/preview/previewBindings';
 import fr from '../../../../public/locales/fr/documents.json';
 import { normalizeResolvedContractCharge, calculateNormalizedContractCharge } from '@alga-psa/billing/lib/billing/domain/calculateContractCharge';
 import { buildQuoteTemplateBindings } from '@alga-psa/billing/lib/quote-template-ast/bindings';
@@ -138,20 +138,25 @@ describe('ticket presentation from actual calculation', () => {
     expect(knownMixed.vm.ticketGroups![0]).toMatchObject({ rateKind: 'mixed', rate: null });
     reconcile(knownMixed.vm, knownMixed.charges);
   });
-  it('roundtrips a nested detail table and resolves its actual parent row scope', async () => {
+  it.each(['group.entries', 'nestedEntries'])('roundtrips nested detail %s and resolves its declared parent row scope', async (bindingId) => {
     const { vm, charges } = fixture(); attachInvoiceTimeCollections(vm, charges);
     const nested = structuredClone(ast);
+    nested.bindings!.collections!.nestedEntries = { id: 'nestedEntries', kind: 'collection', path: 'group.entries' };
     nested.layout.children = [{ id: 'ticket-region', type: 'stack', direction: 'column', repeat: { sourceBinding: { bindingId: 'ticketGroups' }, itemBinding: 'group' }, children: [
-      { id: 'entry-detail', type: 'dynamic-table', repeat: { sourceBinding: { bindingId: 'group.entries' }, itemBinding: 'entry' }, columns: [
+      { id: 'entry-detail', type: 'dynamic-table', repeat: { sourceBinding: { bindingId }, itemBinding: 'entry' }, columns: [
         { id: 'hours', header: 'Hours', value: { type: 'path', path: 'entry.hours' }, format: 'number' },
         { id: 'amount', header: 'Amount', value: { type: 'path', path: 'entry.amount' }, format: 'currency' },
       ] },
     ] }];
     const reopened = exportWorkspaceToTemplateAst(importTemplateAstToWorkspace(nested));
+    expect((reopened.layout.children[0] as any).children[0].repeat.sourceBinding.bindingId).toBe(bindingId);
     const scope = resolveCanvasRowScope(vm, reopened, 'entry-detail');
-    expect(resolveCanvasCollection(vm, 'group.entries', reopened, scope).rows).toEqual(vm.ticketGroups![0].entries);
+    expect(resolveCanvasCollection(vm, bindingId, reopened, scope).rows).toEqual(vm.ticketGroups![0].entries);
+    expect(resolveTableItemBindingRawValue(vm, resolveCanvasCollection(vm, bindingId, reopened, scope).rows[0], 'line.amount', 'line')).toBe(37500);
     const { html } = await renderEvaluatedTemplateAst(reopened, evaluateTemplateAst(reopened, vm as unknown as Record<string, unknown>));
     expect(html).toContain('$375.00'); expect(html).toContain('$180.00');
+    const legacy = { ...vm, ticketGroups: undefined, timeEntries: undefined };
+    expect(resolveCanvasCollection(legacy, bindingId, reopened, resolveCanvasRowScope(legacy, reopened, 'entry-detail'))).toEqual({ rows: [] });
     const customBindingAst = { ...ast, bindings: { ...ast.bindings, collections: { ...ast.bindings!.collections, savedPrimary: { id: 'savedPrimary', kind: 'collection' as const, path: 'ticketPresentationRows' } } } };
     expect(resolveCollectionDescriptor('savedPrimary', undefined, customBindingAst)?.fields.map((f) => f.name)).toContain('rateKind');
   });
@@ -192,6 +197,49 @@ describe('ticket presentation from actual calculation', () => {
       { id: 'invalid-sort', type: 'sort', keys: [{ path: 'amount', direction: 'asc' }] },
     ] } };
     expect(resolveCanvasCollection(vm, 'selectedTime', invalid)).toMatchObject({ rows: [], diagnostic: expect.stringContaining('cannot run after grouped output') });
+  });
+
+  it.each(['invoiceNumber', 'missing.path'])('diagnoses declared invalid collection %s on canvas and render after reopening', async (path) => {
+    const { vm, charges } = fixture(); attachInvoiceTimeCollections(vm, charges);
+    const invalid = structuredClone(ast);
+    invalid.bindings!.collections!.bad = { id: 'bad', kind: 'collection', path };
+    invalid.layout.children = [{ id: 'bad-table', type: 'dynamic-table', repeat: { sourceBinding: { bindingId: 'bad' }, itemBinding: 'entry' }, columns: [
+      { id: 'amount', header: 'Amount', value: { type: 'path', path: 'entry.amount' }, format: 'currency' },
+    ] }];
+    const reopened = exportWorkspaceToTemplateAst(importTemplateAstToWorkspace(invalid));
+    expect(resolveCanvasCollection(vm, 'bad', reopened)).toMatchObject({ rows: [], diagnostic: expect.stringContaining(path) });
+    await expect(renderEvaluatedTemplateAst(reopened, evaluateTemplateAst(reopened, vm as any))).rejects.toThrow(path);
+    for (const empty of [{ ...vm, [path]: [] }, { ...vm, timeEntries: undefined }]) {
+      const valid = structuredClone(reopened);
+      valid.bindings!.collections!.bad.path = 'timeEntries' in empty && empty.timeEntries === undefined ? 'timeEntries' : 'empty';
+      const data = { ...empty, empty: [] };
+      expect(resolveCanvasCollection(data, 'bad', valid)).toEqual({ rows: [] });
+      expect((await renderEvaluatedTemplateAst(valid, evaluateTemplateAst(valid, data as any))).html).not.toContain('$375.00');
+    }
+  });
+  it.each(['rateDisplay', 'label'])('filters and sorts %s on identical neutral data before translating', async (path) => {
+    const { vm, charges } = fixture(); attachInvoiceTimeCollections(vm, charges);
+    const t = (key: string, options: { defaultValue: string }) => key.split('.').reduce<any>((o, part) => o?.[part], fr) ?? options.defaultValue;
+    for (const operation of [
+      { id: 'filter', type: 'filter', predicate: { type: 'comparison', path, op: 'eq', value: 'Tarifs variables' } },
+      { id: 'filter-semantic', type: 'filter', predicate: { type: 'comparison', path: 'rateKind', op: 'eq', value: 'mixed' } },
+      { id: 'sort-asc', type: 'sort', keys: [{ path, direction: 'asc' }] },
+      { id: 'sort-desc', type: 'sort', keys: [{ path, direction: 'desc' }] },
+    ]) {
+      const transformed = { ...ast, transforms: { sourceBindingId: 'timeEntries', outputBindingId: 'selected', operations: [operation] } } as TemplateAst;
+      const expected = localizeTimePresentation(evaluateTemplateAst(transformed, vm as any), t).bindings.selected;
+      expect(localizeTimePresentation(resolveCanvasCollection(vm, 'selected', transformed).rows, t)).toEqual(expected);
+      expect(localizeTimePresentation(resolveCanvasCollection(localizeTimePresentation(vm, t), 'selected', transformed).rows, t)).toEqual(expected);
+      if (operation.id === 'filter') expect(expected).toEqual([]);
+      if (operation.id === 'filter-semantic') expect((expected as any[])[0].rateDisplay).toBe('Tarifs variables');
+      transformed.layout = { id: 'document', type: 'document', children: [{ id: 'selected', type: 'dynamic-table', repeat: { sourceBinding: { bindingId: 'selected' }, itemBinding: 'entry' }, columns: [
+        { id: 'id', header: 'Entry', value: { type: 'path', path: 'entry.id' } },
+        { id: 'rate', header: 'Rate', value: { type: 'path', path: 'entry.rateDisplay' }, format: 'currency' },
+      ] }] };
+      const { html } = await renderEvaluatedTemplateAst(transformed, evaluateTemplateAst(transformed, vm as any), { locale: 'fr', t });
+      const renderedIds = [...html.matchAll(/<td[^>]*>([^<]*)<\/td>/g)].filter((_match, index) => index % 2 === 0).map((match) => match[1]).filter(Boolean);
+      expect(renderedIds).toEqual((expected as any[]).map((row) => row.id));
+    }
   });
   it.each(['quote', 'sales-order'] as const)('renders discovered presets from saved %s bindings using that document’s row fields', async (kind) => {
     const bindings = kind === 'quote' ? buildQuoteTemplateBindings() : buildSalesOrderTemplateBindings();

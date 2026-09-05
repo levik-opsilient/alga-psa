@@ -342,6 +342,7 @@ const resolveCollectionPath = (node: WorkspaceNode, documentKind: DesignerDocume
     asTrimmedString(metadata.bindingKey) ||
     asTrimmedString(metadata.path);
   const normalized = normalizeInvoiceBindingPath(rawPath, documentKind);
+  if (asTrimmedString(metadata.collectionBindingKey) || asTrimmedString(metadata.collectionPath)) return normalized;
   return normalized.length > 0 && normalized !== 'invoiceNumber' ? normalized : 'items';
 };
 
@@ -1872,13 +1873,7 @@ export const importTemplateAstToWorkspace = (
           // Preserve the raw source bindingId so scope-resolved bindings
           // (e.g. `group.items` inside a repeating stack) round-trip back
           // without being replaced by a synthesized `collection.*` id.
-          const isResolvableGlobalBinding =
-            Boolean(astInput.bindings?.collections?.[rawBindingId]) ||
-            normalizeInvoiceBindingPath(asTrimmedString(astInput.transforms?.outputBindingId), documentKind) ===
-              normalizeInvoiceBindingPath(rawBindingId, documentKind);
-          if (!isResolvableGlobalBinding) {
-            metadata.__astTableSourceBindingId = rawBindingId;
-          }
+          metadata.__astTableSourceBindingId = rawBindingId;
           const collectionPath = resolveImportedCollectionBindingPath(astInput, rawBindingId, documentKind);
           metadata.collectionBindingKey = denormalizeBindingPath(collectionPath, documentKind);
           metadata.columns = inputNode.columns.map((column) => {

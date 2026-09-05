@@ -1,3 +1,5 @@
+import { resolveEvaluatedCollection } from './collectionResolution';
+import { TemplateEvaluationError } from './evaluator';
 import { localizeTimePresentation } from './timePresentationLocalization';
 import type { TemplateLabelTranslator } from './i18nLabels';
 import React from 'react';
@@ -40,6 +42,7 @@ type RenderScope = {
 };
 
 type RenderContext = {
+  ast: TemplateAst;
   locale: string;
   currencyCode: string;
 };
@@ -296,6 +299,11 @@ const buildAstCss = (ast: TemplateAst): string => {
   gap: 16px;
   padding: 2px 0;
 }
+@media print {
+  .invoice-template-root thead { display: table-header-group; }
+  .invoice-template-root tbody tr,
+  .invoice-template-root .ast-node-type-totals { break-inside: avoid; }
+}
 .invoice-template-root .ast-totals-value {
   text-align: right;
   white-space: nowrap;
@@ -394,27 +402,14 @@ const resolveExpressionValue = (
  * identically to before.
  */
 const resolveCollection = (
+  ast: TemplateAst,
   bindingId: string,
   evaluation: TemplateEvaluationResult,
   scope: RenderScope,
 ): UnknownRecord[] => {
-  const scopeItems = scope.items;
-  if (scopeItems && bindingId.includes('.')) {
-    const [head, ...rest] = bindingId.split('.');
-    if (head && Object.prototype.hasOwnProperty.call(scopeItems, head)) {
-      const scoped = getPathValue(scopeItems[head], rest.join('.'));
-      if (Array.isArray(scoped)) {
-        return scoped.filter(isRecord);
-      }
-      return [];
-    }
-  }
-
-  const value = evaluation.bindings[bindingId];
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.filter(isRecord);
+  const { rows, diagnostic } = resolveEvaluatedCollection(ast, evaluation, bindingId, scope.items);
+  if (diagnostic) throw new TemplateEvaluationError('INVALID_SOURCE_COLLECTION', diagnostic);
+  return rows;
 };
 
 const renderNode = (
@@ -457,7 +452,7 @@ const renderNode = (
 
       if (node.repeat) {
         const itemBinding = node.repeat.itemBinding;
-        const repeatRows = resolveCollection(node.repeat.sourceBinding.bindingId, evaluation, scope);
+        const repeatRows = resolveCollection(ctx.ast, node.repeat.sourceBinding.bindingId, evaluation, scope);
         return (
           <div key={node.id} id={node.id} className={elementClassName || undefined} style={mergedStyle}>
             {repeatRows.map((row, index) => {
@@ -547,7 +542,7 @@ const renderNode = (
     case 'divider':
       return <hr key={node.id} id={node.id} className={elementClassName || undefined} style={style} />;
     case 'table': {
-      const rows = resolveCollection(node.sourceBinding.bindingId, evaluation, scope);
+      const rows = resolveCollection(ctx.ast, node.sourceBinding.bindingId, evaluation, scope);
       const { style: headerStyle } = resolveStyleRef(node.headerStyle);
       return (
         <table key={node.id} id={node.id} className={elementClassName || undefined} style={style}>
@@ -598,7 +593,7 @@ const renderNode = (
       );
     }
     case 'dynamic-table': {
-      const rows = resolveCollection(node.repeat.sourceBinding.bindingId, evaluation, scope);
+      const rows = resolveCollection(ctx.ast, node.repeat.sourceBinding.bindingId, evaluation, scope);
       const { style: dynamicHeaderStyle } = resolveStyleRef(node.headerStyle);
       return (
         <table key={node.id} id={node.id} className={elementClassName || undefined} style={style}>
@@ -700,7 +695,7 @@ export const TemplateAstRenderer: React.FC<TemplateReactRendererProps> = ({ ast,
 
   return (
     <div className="invoice-template-root">
-      {renderNode(ast.layout, evaluation, {}, { currencyCode, locale }, rootDocumentStyleOverride)}
+      {renderNode(ast.layout, evaluation, {}, { ast, currencyCode, locale }, rootDocumentStyleOverride)}
     </div>
   );
 };

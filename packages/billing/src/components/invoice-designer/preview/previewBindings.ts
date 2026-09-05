@@ -1,3 +1,4 @@
+import { EMPTY_REPEAT_SCOPE, resolveEvaluatedCollection } from '../../../lib/invoice-template-ast/collectionResolution';
 import { evaluateTemplateAst } from '../../../lib/invoice-template-ast/evaluator';
 import { buildInvoiceTemplateBindings } from '../../../lib/invoice-template-ast/standardTemplates';
 import type { TemplateAst, TemplateNode } from '@alga-psa/types';
@@ -123,7 +124,8 @@ export const resolveFieldPreviewValue = (params: {
 export const resolveTableItemBindingRawValue = (
   invoice: WasmInvoiceViewModel | null,
   item: Record<string, unknown>,
-  columnKey: string
+  columnKey: string,
+  rowBinding = 'item',
 ): unknown => {
   const normalizedKey = asTrimmedString(columnKey);
   if (!normalizedKey) {
@@ -132,7 +134,7 @@ export const resolveTableItemBindingRawValue = (
   // Both authoring prefixes resolve against the current row, mirroring the
   // evaluator's row-scope-first rule ('entry.' is the nested time-entry
   // table's conventional item binding).
-  for (const prefix of ['item.', 'entry.', 'group.']) {
+  for (const prefix of [`${rowBinding}.`, 'item.', 'entry.', 'group.']) {
     if (normalizedKey.startsWith(prefix)) {
       return getModelPathValue(item, normalizedKey.slice(prefix.length));
     }
@@ -158,12 +160,7 @@ export const resolveCanvasCollection = (
   const template = ast ?? { kind: 'invoice-template-ast', version: 1, bindings: buildInvoiceTemplateBindings(), layout: { id: 'canvas', type: 'document', children: [] } } as TemplateAst;
   try {
     const evaluation = evaluateTemplateAst(template, invoice as unknown as Record<string, unknown>);
-    const scopedPath = template.bindings?.collections?.[id]?.path ?? id;
-    const scoped = scope ? getModelPathValue(scope, scopedPath) : undefined;
-    const pathBinding = Object.entries(template.bindings?.collections ?? {}).find(([, binding]) => binding.path === id)?.[0];
-    const value = scoped ?? evaluation.bindings[id] ?? (pathBinding ? evaluation.bindings[pathBinding] : undefined);
-    if (!Array.isArray(value)) return { rows: [], diagnostic: `Collection "${id}" is missing or is not an array.` };
-    return { rows: value as Record<string, unknown>[] };
+    return resolveEvaluatedCollection(template, evaluation, id, scope);
   } catch (error) {
     return { rows: [], diagnostic: error instanceof Error ? error.message : String(error) };
   }
@@ -185,8 +182,8 @@ export function resolveCanvasRowScope(invoice: WasmInvoiceViewModel | null, ast:
     if (node.id === nodeId) { result = scope; return true; }
     let childScope = scope;
     if (node.type === 'stack' && node.repeat) {
-      const { rows } = resolveCanvasCollection(invoice, node.repeat.sourceBinding.bindingId, ast, scope);
-      childScope = { ...scope, [node.repeat.itemBinding]: rows[0] ?? {} };
+      const { rows, diagnostic } = resolveCanvasCollection(invoice, node.repeat.sourceBinding.bindingId, ast, scope);
+      childScope = { ...scope, [node.repeat.itemBinding]: rows[0] ?? {}, ...(!diagnostic && rows.length === 0 ? { [EMPTY_REPEAT_SCOPE]: true } : {}) };
     }
     return 'children' in node && (node.children?.some((child) => visit(child, childScope)) ?? false);
   };

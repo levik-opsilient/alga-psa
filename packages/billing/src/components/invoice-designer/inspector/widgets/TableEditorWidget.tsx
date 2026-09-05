@@ -398,7 +398,10 @@ export const TableEditorWidget: React.FC<Props> = ({ node }) => {
             id="designer-table-source-binding"
             options={collectionBindingOptions}
             value={sourceBindingId}
-            onValueChange={(value: string) => setNodeProp(node.id, 'metadata.collectionBindingKey', value, true)}
+            onValueChange={(value: string) => {
+              setNodeProp(node.id, 'metadata.__astTableSourceBindingId', undefined, true);
+              setNodeProp(node.id, 'metadata.collectionBindingKey', value, true);
+            }}
             size="sm"
           />
         </div>

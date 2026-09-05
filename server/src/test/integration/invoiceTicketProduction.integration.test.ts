@@ -19,14 +19,7 @@ vi.mock('@alga-psa/auth', async (original) => {
 });
 vi.mock('@alga-psa/auth/getCurrentUser', () => ({ getCurrentUser: async () => state.user }));
 
-it.runIf(process.env.INVOICE_TICKET_LIVE === '1')('generates immutable ticket presentation from approved source records', async () => {
-  fs.mkdirSync(evidenceDir, { recursive: true });
-  const env = dotenv.parse(fs.readFileSync('.env.local'));
-  Object.assign(process.env, env, { DB_PORT: '5472' });
-  const db = knex({ client: 'pg', connection: { host: env.DB_HOST, port: 5472, database: env.DB_NAME_SERVER, user: env.DB_USER_ADMIN, password: env.DB_PASSWORD_ADMIN } });
-  try {
-    state.user = await db('users').where({ email: 'invoice-draft-verifier@example.invalid' }).first();
-    state.tenant = state.user.tenant;
+async function createSourceFixture(db: ReturnType<typeof knex>, customize?: (ids: any) => Promise<void>) {
     const tenant = state.tenant, userId = state.user.user_id;
     const clientId = randomUUID(), contractId = randomUUID(), lineId = randomUUID(), serviceId = randomUUID(), cycleId = randomUUID(), profileId = randomUUID(), usageLineId = randomUUID(), usageServiceId = randomUUID();
     await db.transaction(async (tx) => {
@@ -70,9 +63,22 @@ it.runIf(process.env.INVOICE_TICKET_LIVE === '1')('generates immutable ticket pr
     await db('client_tax_rates').insert({ tenant, client_id: clientId, tax_rate_id: taxRateId, is_default: true });
     await db('client_tax_settings').insert({ tenant, client_id: clientId, billing_profile_id: profileId, is_reverse_charge_applicable: false });
     await db('service_catalog').where({ tenant }).whereIn('service_id', [serviceId, usageServiceId]).update({ tax_rate_id: taxRateId });
+    if (customize) await customize({ tenant, userId, clientId, contractId, lineId, serviceId, cycleId, profileId, usageLineId, usageServiceId, taxRateId, regionCode });
     const { syncRecurringServicePeriodsForContractLine } = await import('@alga-psa/billing/actions/recurringServicePeriodSync');
     await db.transaction((tx) => syncRecurringServicePeriodsForContractLine(tx, { tenant, contractLineId: lineId, sourceRunPrefix: 'invoice-ticket-acceptance' }));
     await db.transaction((tx) => syncRecurringServicePeriodsForContractLine(tx, { tenant, contractLineId: usageLineId, sourceRunPrefix: 'invoice-ticket-acceptance' }));
+    return { tenant, userId, clientId, contractId, lineId, serviceId, cycleId, profileId, usageLineId, usageServiceId, taxRateId, regionCode };
+}
+
+it.runIf(process.env.INVOICE_TICKET_LIVE === '1')('generates immutable ticket presentation from approved source records', async () => {
+  fs.mkdirSync(evidenceDir, { recursive: true });
+  const env = dotenv.parse(fs.readFileSync('.env.local'));
+  Object.assign(process.env, env, { DB_PORT: '5472' });
+  const db = knex({ client: 'pg', connection: { host: env.DB_HOST, port: 5472, database: env.DB_NAME_SERVER, user: env.DB_USER_ADMIN, password: env.DB_PASSWORD_ADMIN } });
+  try {
+    state.user = await db('users').where({ email: 'invoice-draft-verifier@example.invalid' }).first();
+    state.tenant = state.user.tenant;
+    const { tenant, userId, clientId, lineId, serviceId, cycleId, profileId, usageServiceId } = await createSourceFixture(db);
     fs.writeFileSync(`${evidenceDir}/source.json`, JSON.stringify({ tenant, clientId, lineId, cycleId, userId }, null, 2));
     const { generateInvoice, previewInvoice } = await import('@alga-psa/billing/actions/invoiceGeneration');
     const preview = await previewInvoice(cycleId) as any;
@@ -250,5 +256,248 @@ it.runIf(process.env.INVOICE_TICKET_CUSTOM === '1')('renders the UI-saved transf
     expect(text).toContain(new Intl.NumberFormat('fr', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(vm.total / 100));
     expect(text).not.toContain('EDITED');
     fs.writeFileSync(`${evidenceDir}/custom.txt`, text);
+  } finally { await db.destroy(); }
+}, 120000);
+
+it.runIf(process.env.INVOICE_TICKET_EXTENDED === '1').each(['cap', 'bucket', 'multi-tax-long'])('verifies %s generation or the documented bucket rollback blocker', async (variant) => {
+  const dir = `${evidenceDir}/${variant}`;
+  fs.mkdirSync(dir, { recursive: true });
+  const env = dotenv.parse(fs.readFileSync('.env.local'));
+  Object.assign(process.env, env, { DB_PORT: '5472' });
+  const db = knex({ client: 'pg', connection: { host: env.DB_HOST, port: 5472, database: env.DB_NAME_SERVER, user: env.DB_USER_ADMIN, password: env.DB_PASSWORD_ADMIN } });
+  try {
+    state.user = await db('users').where({ email: 'invoice-draft-verifier@example.invalid' }).first();
+    state.tenant = state.user.tenant;
+    let projectConfigId: string | undefined;
+    let cappedProjectId: string | undefined;
+    const ids = await createSourceFixture(db, async (ids) => {
+      const { tenant, clientId, lineId, serviceId, contractId } = ids;
+      if (variant === 'cap') {
+        const projectId = randomUUID(), phaseId = randomUUID(), taskId = randomUUID();
+        projectConfigId = randomUUID();
+        cappedProjectId = projectId;
+        const baseProject = await db('projects').where({ tenant }).first();
+        const basePhase = await db('project_phases').where({ tenant }).first();
+        await db('projects').insert({ ...baseProject, project_id: projectId, client_id: clientId, project_name: 'Acceptance capped project', start_date: '2026-08-01', project_number: `CAP-${projectId.slice(0,6)}`, wbs_code: `CAP-${projectId}`, billing_profile_id: ids.profileId });
+        await db('project_phases').insert({ ...basePhase, phase_id: phaseId, project_id: projectId, phase_name: 'Acceptance phase', wbs_code: `CAP-${phaseId}` });
+        await db('project_tasks').insert({ tenant, task_id: taskId, phase_id: phaseId, task_name: 'Acceptance capped task', wbs_code: '1.1' });
+        await db('project_billing_configs').insert({ tenant, config_id: projectConfigId, project_id: projectId, billing_model: 'time_and_materials', currency: 'USD', invoice_mode: 'standalone', contract_id: null, cap_amount: 20000, cap_behavior: 'hard_cap' });
+        const overtime = await db('time_entries').where({ tenant, contract_line_id: lineId, billable_duration: 120 }).first();
+        await db('time_entries').where({ tenant, work_item_id: overtime.work_item_id }).update({ work_item_type: 'project_task', work_item_id: taskId, contract_line_id: null });
+        // Standalone uncontracted project time exercises the supported cap path.
+        await db('client_contracts').where({ tenant, client_id: clientId }).delete();
+      }
+      if (variant === 'bucket') {
+        const bucketId = randomUUID();
+        await db('client_billing_cycles').where({ tenant, billing_cycle_id: ids.cycleId }).update({ effective_date: '2026-08-01', period_start_date: '2026-08-01', period_end_date: '2026-09-01' });
+        await db('contract_line_service_configuration').insert({ tenant, config_id: bucketId, contract_line_id: lineId, service_id: serviceId, configuration_type: 'Bucket' });
+        await db('contract_line_service_bucket_config').insert({ tenant, config_id: bucketId, total_minutes: 60, overage_rate: 15000, allow_rollover: false });
+        await db('contract_line_buckets').insert({ tenant, bucket_id: bucketId, contract_line_id: lineId, bucket_name: 'Acceptance included hour', total_minutes: 60, overage_rate: 15000, allow_rollover: false, covers_all_services: false });
+        await db('contract_line_bucket_services').insert({ tenant, bucket_id: bucketId, contract_line_id: lineId, service_id: serviceId, burn_multiplier: 1 });
+        const { findOrCreateCurrentBucketUsageRecord, reconcileBucketUsageRecord } = await import('@alga-psa/shared/billingClients/bucketUsageService');
+        await db.transaction(async (tx) => {
+          const usage = await findOrCreateCurrentBucketUsageRecord(tx, clientId, serviceId, '2026-08-15', lineId, tenant);
+          await reconcileBucketUsageRecord(tx, usage.usage_id, tenant);
+          const actual = await tx('bucket_usage').where({ tenant, usage_id: usage.usage_id }).first();
+          expect(Number(actual.minutes_used)).toBe(300);
+          expect(Number(actual.overage_minutes)).toBe(240);
+          fs.writeFileSync(`${dir}/bucket-usage.json`, JSON.stringify(actual, null, 2));
+        });
+      }
+      if (variant === 'multi-tax-long') {
+        const secondService = randomUUID(), secondTax = randomUUID(), configId = randomUUID(), regionCode = `SECOND-${clientId}`;
+        const original = await db('service_catalog').where({ tenant, service_id: serviceId }).first();
+        await db('tax_regions').insert({ tenant, region_code: regionCode, region_name: 'Acceptance 20%' });
+        await db('tax_rates').insert({ tenant, tax_rate_id: secondTax, region_code: regionCode, tax_percentage: 20, start_date: '2026-01-01', is_active: true });
+        await db('client_tax_rates').insert({ tenant, client_id: clientId, tax_rate_id: secondTax, is_default: false });
+        await db('service_catalog').insert({ ...original, service_id: secondService, service_name: 'Acceptance 20 percent service', tax_rate_id: secondTax });
+        await db('service_prices').insert({ tenant, price_id: randomUUID(), service_id: secondService, currency_code: 'USD', rate: 15000 });
+        await db('contract_line_services').insert({ tenant, contract_line_id: lineId, service_id: secondService, quantity: 1, custom_rate: 15000 });
+        await db('contract_line_service_configuration').insert({ tenant, config_id: configId, contract_line_id: lineId, service_id: secondService, configuration_type: 'Hourly', custom_rate: 15000, quantity: 1 });
+        await db('contract_line_service_hourly_config').insert({ tenant, config_id: configId, minimum_billable_time: 0, round_up_to_nearest: 0 });
+        const overtime = await db('time_entries').where({ tenant, contract_line_id: lineId, billable_duration: 120 }).first();
+        const single = await db('time_entries').where({ tenant, work_item_id: overtime.work_item_id, billable_duration: 60 }).first();
+        await db('time_entries').where({ tenant, entry_id: single.entry_id }).update({ service_id: secondService });
+        // Source entries, not manufactured renderer rows: a real long invoice.
+        for (let i = 0; i < 70; i++) await db('time_entries').insert({ ...single, entry_id: randomUUID(), service_id: i % 2 ? secondService : serviceId, start_time: `2026-08-${String(17 + i % 10).padStart(2, '0')}T10:00:00Z`, end_time: `2026-08-${String(17 + i % 10).padStart(2, '0')}T11:00:00Z`, work_date: `2026-08-${String(17 + i % 10).padStart(2, '0')}` });
+        await db('tickets').where({ tenant, client_id: clientId }).update({ title: 'Long public ticket title for nested detail wrapping and invoice readability', attributes: { description: 'Public investigation, remediation and validation across the customer environment. '.repeat(5) } });
+      }
+    });
+    const { generateInvoice, generateProjectInvoice } = await import('@alga-psa/billing/actions/invoiceGeneration');
+    if (variant === 'bucket') {
+      // Independently reproduced existing recurring-linkage blocker. The actual
+      // supported action must roll back, never leave a partial invoice.
+      const before = await db('invoices').where({ tenant: ids.tenant, client_id: ids.clientId });
+      await expect(generateInvoice(ids.cycleId)).rejects.toThrow('is missing servicePeriodRecordId');
+      expect(await db('invoices').where({ tenant: ids.tenant, client_id: ids.clientId })).toEqual(before);
+      fs.writeFileSync(`${dir}/blocker.json`, JSON.stringify({ ids, error: 'Recurring bucket persistence is missing servicePeriodRecordId; transaction rolled back.' }, null, 2));
+      return;
+    }
+    const result = await (variant === 'cap' ? generateProjectInvoice(cappedProjectId!) : generateInvoice(ids.cycleId)) as any;
+    expect(result.invoice_id, JSON.stringify(result)).toBeTruthy();
+    const { default: Invoice } = await import('@alga-psa/billing/models/invoice');
+    const { mapDbInvoiceToWasmViewModel } = await import('@alga-psa/billing/lib/adapters/invoiceAdapters');
+    const invoice = await Invoice.getFullInvoiceById(db, ids.tenant, result.invoice_id);
+    const vm = mapDbInvoiceToWasmViewModel(invoice)!;
+    const charges = await db('invoice_charges').where({ tenant: ids.tenant, invoice_id: result.invoice_id });
+    const links = await db('invoice_time_entries').where({ tenant: ids.tenant, invoice_id: result.invoice_id });
+    fs.writeFileSync(`${dir}/generated.json`, JSON.stringify({ ids, invoiceId: result.invoice_id, invoiceNumber: invoice!.invoice_number, charges, links, vm }, null, 2));
+    for (const charge of charges) {
+      const contributions = vm.ticketPresentationRows!.flatMap((r) => r.contributions).filter((c) => c.itemId === charge.item_id);
+      expect(contributions.reduce((sum, c) => sum + c.amount, 0)).toBe(Number(charge.net_amount));
+      if (contributions.some((c) => c.entryId === null)) expect(contributions).toHaveLength(1);
+    }
+    expect(vm.ticketPresentationRows!.reduce((sum, row) => sum + row.amount, 0)).toBe(vm.subtotal);
+    expect(vm.tax).toBe(charges.reduce((sum, row) => sum + Number(row.tax_amount), 0));
+    expect(vm.total).toBe(vm.subtotal + vm.tax);
+    if (variant === 'cap') {
+      expect(vm.subtotal).toBe(20000); expect(vm.tax).toBe(2000);
+      const cappedLinks = links.filter((link) => link.work_item_snapshot.workItemType === 'project_task');
+      expect(cappedLinks).toHaveLength(2);
+      for (const link of cappedLinks) {
+        const charge = charges.find((c) => c.item_id === link.item_id)!;
+        expect(Number(charge.net_amount)).not.toBe(link.work_item_snapshot.netAmount);
+        expect(vm.ticketPresentationRows!.find((r) => r.id === link.item_id)).toMatchObject({ rateKind: 'unknown', rate: null });
+        expect(link.work_item_snapshot.rateKind).not.toBe('uniform');
+      }
+      const usage = await db('project_billing_cap_usage').where({ tenant: ids.tenant, config_id: projectConfigId }).first();
+      expect(Number(usage.billed_amount)).toBe(20000); expect(Number(usage.written_down_amount)).toBe(25000);
+      fs.writeFileSync(`${dir}/cap-usage.json`, JSON.stringify(usage, null, 2));
+      const { addManualItemsToInvoice } = await import('@alga-psa/billing/actions/invoiceModification');
+      const adjusted = await addManualItemsToInvoice(result.invoice_id, [
+        { description: 'Cap acceptance line discount', quantity: 1, rate: -1000, is_discount: true, discount_type: 'fixed', applies_to_item_id: charges.find((c) => Number(c.net_amount) > 0)!.item_id, is_taxable: false },
+        { description: 'Cap acceptance negative credit', quantity: 1, rate: -500, is_taxable: false },
+        { description: 'Cap acceptance information', quantity: 1, rate: 0, is_taxable: false },
+      ] as any) as any;
+      const adjustedVm = mapDbInvoiceToWasmViewModel(adjusted)!;
+      expect(adjustedVm.subtotal).toBe(18500); expect(adjustedVm.tax).toBe(2000); expect(adjustedVm.total).toBe(20500);
+      for (const description of ['Cap acceptance line discount', 'Cap acceptance negative credit', 'Cap acceptance information']) {
+        expect(adjustedVm.ticketPresentationRows!.filter((row) => row.description === description)).toHaveLength(1);
+      }
+      expect(await db('invoice_time_entries').where({ tenant: ids.tenant, invoice_id: result.invoice_id })).toEqual(links);
+      expect(adjustedVm.ticketPresentationRows!.reduce((sum, row) => sum + row.amount, 0)).toBe(adjustedVm.subtotal);
+      fs.writeFileSync(`${dir}/inline-adjustments.json`, JSON.stringify(adjustedVm, null, 2));
+
+    }
+    if (variant === 'multi-tax-long') {
+      expect(links).toHaveLength(74);
+      expect(vm.subtotal).toBe(1137500); expect(vm.tax).toBe(167750);
+      expect(vm.ticketPresentationRows!.find((row) => row.contributions.length > 2)?.taxRate).toBeUndefined();
+    }
+    const { PDFGenerationService } = await import('@alga-psa/billing/services/pdfGenerationService');
+    const standard = await db('standard_invoice_templates').where({ standard_invoice_template_code: 'standard-invoice-by-ticket' }).first();
+    const pdf = new PDFGenerationService(ids.tenant);
+    const preview = await pdf.renderInvoicePreview({ invoiceId: result.invoice_id, templateId: standard.template_id });
+    fs.writeFileSync(`${dir}/preview.html`, preview.html);
+    fs.writeFileSync(`${dir}/production.pdf`, await pdf.generatePDF({ invoiceId: result.invoice_id, userId: ids.userId, templateId: standard.template_id }));
+  } finally { await db.destroy(); }
+}, 180000);
+
+it.runIf(Boolean(process.env.INVOICE_TICKET_REVIEW_LAYOUT))('saves and verifies a named nested alias on the generated long invoice through production preview/PDF', async () => {
+  const dir = `${evidenceDir}/designer`;
+  fs.mkdirSync(dir, { recursive: true });
+  const env = dotenv.parse(fs.readFileSync('.env.local'));
+  Object.assign(process.env, env, { DB_PORT: '5472' });
+  const db = knex({ client: 'pg', connection: { host: env.DB_HOST, port: 5472, database: env.DB_NAME_SERVER, user: env.DB_USER_ADMIN, password: env.DB_PASSWORD_ADMIN } });
+  try {
+    state.user = await db('users').where({ email: 'invoice-draft-verifier@example.invalid' }).first(); state.tenant = state.user.tenant;
+    const generated = JSON.parse(fs.readFileSync(`${evidenceDir}/multi-tax-long/generated.json`, 'utf8'));
+    const { getStandardTemplateAstByCode } = await import('@alga-psa/billing/lib/invoice-template-ast/standardTemplates');
+    const { saveInvoiceTemplate } = await import('@alga-psa/billing/actions/invoiceTemplates');
+    let templateId = process.env.INVOICE_TICKET_REVIEW_TEMPLATE;
+    if (process.env.INVOICE_TICKET_REVIEW_LAYOUT === 'seed') {
+      // Seed an existing custom layout through the supported save action. The
+      // visual editor exposes collection selection, but no alias-declaration UI.
+      const ast = structuredClone(getStandardTemplateAstByCode('standard-invoice-by-ticket'))!;
+      ast.bindings!.collections!.nestedEntries = { id: 'nestedEntries', kind: 'collection', path: 'group.entries' };
+      ast.transforms = { sourceBindingId: 'timeEntries', outputBindingId: 'selectedTime', operations: [{ id: 'mixed-filter', type: 'filter', predicate: { type: 'comparison', path: 'rateKind', op: 'eq', value: 'mixed' } }] };
+      const columns: any[] = [
+        { id: 'ticket', header: 'Ticket', value: { type: 'path', path: 'entry.ticketNumber' }, format: 'text' },
+        { id: 'hours', header: 'Hours', value: { type: 'path', path: 'entry.hours' }, format: 'number' },
+        { id: 'rate', header: 'Rate', value: { type: 'path', path: 'entry.rateDisplay' }, format: 'currency' },
+        { id: 'amount', header: 'Amount', value: { type: 'path', path: 'entry.amount' }, format: 'currency' },
+      ];
+      const nested: any = { id: 'ticket-region', type: 'stack', direction: 'column', repeat: { sourceBinding: { bindingId: 'ticketGroups' }, itemBinding: 'group' }, children: [
+        { id: 'ticket-label', type: 'text', content: { type: 'path', path: 'group.label' } },
+        { id: 'entry-detail', type: 'dynamic-table', repeat: { sourceBinding: { bindingId: 'nestedEntries' }, itemBinding: 'entry' }, columns },
+      ] };
+      const totalsIndex = ast.layout.children.findIndex((node) => node.id === 'totals-wrap');
+      ast.layout.children.splice(totalsIndex < 0 ? ast.layout.children.length : totalsIndex, 0,
+        { id: 'detail-notice', type: 'text', content: { type: 'literal', value: 'Billed-time detail — included in the charges above' } },
+        { id: 'filtered-detail', type: 'dynamic-table', repeat: { sourceBinding: { bindingId: 'selectedTime' }, itemBinding: 'entry' }, columns },
+        nested);
+      const saved = await saveInvoiceTemplate({ template_id: randomUUID(), name: 'Acceptance nested ticket detail', version: 1, is_default: false, templateAst: ast } as any);
+      expect(saved.success, saved.error).toBe(true); templateId = saved.template!.template_id;
+      await db('clients').where({ tenant: state.tenant, client_id: generated.ids.clientId }).update({ properties: { defaultLocale: 'fr' } });
+      fs.writeFileSync(`${dir}/source.json`, JSON.stringify({ templateId, invoiceId: generated.invoiceId, invoiceNumber: generated.invoiceNumber }, null, 2));
+    }
+    expect(templateId).toBeTruthy();
+    const template = await db('invoice_templates').where({ tenant: state.tenant, template_id: templateId }).first();
+    const { default: Invoice } = await import('@alga-psa/billing/models/invoice');
+    const { mapDbInvoiceToWasmViewModel } = await import('@alga-psa/billing/lib/adapters/invoiceAdapters');
+    const { evaluateTemplateAst } = await import('@alga-psa/billing/lib/invoice-template-ast/evaluator');
+    const { resolveCanvasCollection, resolveCanvasRowScope } = await import('@alga-psa/billing/components/invoice-designer/preview/previewBindings');
+    const { PDFGenerationService } = await import('@alga-psa/billing/services/pdfGenerationService');
+    const vm = mapDbInvoiceToWasmViewModel(await Invoice.getFullInvoiceById(db, state.tenant, generated.invoiceId))!;
+    const ast = template.templateAst;
+    if (process.env.INVOICE_TICKET_REVIEW_LAYOUT === 'verify') {
+      const region = ast.layout.children.find((node: any) => node.id === 'ticket-region');
+      const detail = region.children.find((node: any) => node.id === 'entry-detail');
+      expect(detail.repeat.sourceBinding.bindingId).toBe('nestedEntries');
+      expect(detail.columns).toHaveLength(5);
+      expect(ast.transforms.operations.some((op: any) => op.type === 'sort' && op.keys[0].path === 'rateDisplay')).toBe(true);
+    }
+    const scope = resolveCanvasRowScope(vm, ast, 'entry-detail');
+    const nested = resolveCanvasCollection(vm, 'nestedEntries', ast, scope);
+    expect(nested.rows).toHaveLength(72);
+    expect(nested.rows.reduce((sum, row) => sum + Number(row.amount), 0)).toBe(1102500);
+    const evaluation = evaluateTemplateAst(ast, vm as any);
+    const transformed = resolveCanvasCollection(vm, ast.transforms.outputBindingId, ast);
+    expect(transformed.rows).toEqual(evaluation.bindings[ast.transforms.outputBindingId]);
+    fs.writeFileSync(`${dir}/canvas.json`, JSON.stringify({ nested, transformed }, null, 2));
+    fs.writeFileSync(`${dir}/saved-template.json`, JSON.stringify(ast, null, 2));
+    const pdf = new PDFGenerationService(state.tenant);
+    const preview = await pdf.renderInvoicePreview({ invoiceId: generated.invoiceId, templateId });
+    fs.writeFileSync(`${dir}/preview.html`, preview.html);
+    expect(preview.html).toContain('375,00'); expect(preview.html).toContain('Tarifs variables');
+    fs.writeFileSync(`${dir}/nested.pdf`, await pdf.generatePDF({ invoiceId: generated.invoiceId, userId: state.user.user_id, templateId }));
+    const { execFileSync } = await import('node:child_process');
+    const text = execFileSync('pdftotext', ['-layout', `${dir}/nested.pdf`, '-'], { encoding: 'utf8' });
+    const info = execFileSync('pdfinfo', [`${dir}/nested.pdf`], { encoding: 'utf8' });
+    fs.writeFileSync(`${dir}/nested.txt`, text); fs.writeFileSync(`${dir}/pdfinfo.txt`, info);
+    expect(Number(info.match(/Pages:\s+(\d+)/)?.[1])).toBeGreaterThan(1);
+    expect(text).toContain('375,00'); expect(text).toContain('Tarifs variables');
+    expect(text).toContain('included in the charges above');
+    expect(text.replace(/\s/g, '')).toContain(new Intl.NumberFormat('fr', { minimumFractionDigits: 2 }).format(vm.total / 100).replace(/\s/g, ''));
+    const pages = text.split('\f');
+    expect(pages.some((page) => page.includes('Sous-total') && page.includes('Taxes') && page.includes('Total'))).toBe(true);
+    expect(text).not.toContain('PRIVATE');
+    expect((preview.html.match(/150,00/g) ?? []).length).toBeGreaterThanOrEqual(73);
+  } finally { await db.destroy(); }
+}, 180000);
+
+it.runIf(process.env.INVOICE_TICKET_DIAGNOSTICS === '1')('surfaces declared scalar and missing collection diagnostics through production preview and PDF', async () => {
+  const dir = `${evidenceDir}/diagnostics`; fs.mkdirSync(dir, { recursive: true });
+  const env = dotenv.parse(fs.readFileSync('.env.local')); Object.assign(process.env, env, { DB_PORT: '5472' });
+  const db = knex({ client: 'pg', connection: { host: env.DB_HOST, port: 5472, database: env.DB_NAME_SERVER, user: env.DB_USER_ADMIN, password: env.DB_PASSWORD_ADMIN } });
+  try {
+    state.user = await db('users').where({ email: 'invoice-draft-verifier@example.invalid' }).first(); state.tenant = state.user.tenant;
+    const generated = JSON.parse(fs.readFileSync(`${evidenceDir}/multi-tax-long/generated.json`, 'utf8'));
+    const { saveInvoiceTemplate } = await import('@alga-psa/billing/actions/invoiceTemplates');
+    const { getStandardTemplateAstByCode } = await import('@alga-psa/billing/lib/invoice-template-ast/standardTemplates');
+    const { PDFGenerationService } = await import('@alga-psa/billing/services/pdfGenerationService');
+    const sources = [];
+    for (const path of ['invoiceNumber', 'missing.path']) {
+      const ast = structuredClone(getStandardTemplateAstByCode('standard-invoice-by-ticket'))!;
+      ast.bindings!.collections!.bad = { id: 'bad', kind: 'collection', path };
+      ast.layout.children = [{ id: 'bad-table', type: 'dynamic-table', repeat: { sourceBinding: { bindingId: 'bad' }, itemBinding: 'entry' }, columns: [{ id: 'amount', header: 'Amount', value: { type: 'path', path: 'entry.amount' }, format: 'currency' }] }];
+      const saved = await saveInvoiceTemplate({ template_id: randomUUID(), name: `Acceptance diagnostic ${path}`, version: 1, is_default: false, templateAst: ast } as any);
+      expect(saved.success, saved.error).toBe(true);
+      const pdf = new PDFGenerationService(state.tenant), templateId = saved.template!.template_id;
+      await expect(pdf.renderInvoicePreview({ invoiceId: generated.invoiceId, templateId })).rejects.toThrow(path);
+      await expect(pdf.generatePDF({ invoiceId: generated.invoiceId, userId: state.user.user_id, templateId })).rejects.toThrow(path);
+      sources.push({ path, templateId, invoiceId: generated.invoiceId, invoiceNumber: generated.invoiceNumber });
+    }
+    fs.writeFileSync(`${dir}/sources.json`, JSON.stringify(sources, null, 2));
   } finally { await db.destroy(); }
 }, 120000);
