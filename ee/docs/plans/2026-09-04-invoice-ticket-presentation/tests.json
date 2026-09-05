@@ -102,7 +102,7 @@
   {
     "id": "T009",
     "description": "Generate supported project/task and ticketless source time with mixed services, missing optional labels, and distinct tasks sharing a name. Include ordinary products/usage and prepaid/hour-block rows. Assert identity-based grouping and stable ordering, no fabricated ticket fields, no lost zero/informational rows, and unchanged retained service-period text.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F005",
       "F006",
@@ -176,7 +176,7 @@
   {
     "id": "T015",
     "description": "Through the UI, add explicit entry-level and nested-entry supporting detail to a copied layout; save/reopen and generate a multi-page PDF with long ticket titles/descriptions. Verify readable wrapping, repeated headers, included-in-charges labeling, mixed within-entry rate state, partial-detail notice when applicable, and unchanged authoritative totals.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F015",
       "F016",
@@ -189,7 +189,7 @@
   {
     "id": "T016",
     "description": "Use English and French document locales on the same generated invoice. Capture canvas, full preview and PDF with mixed and unavailable rates, ticketless/task fallback, coverage notes and optional entry detail. Verify translated labels and locale-consistent money/date values while snapshot text remains unchanged; exercise unsupported locale or locale-load failure fallback through the real localization seam.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F014",
       "F015",

@@ -1,6 +1,8 @@
 # Invoice ticket presentation draft verification
 
-**Latest mitigation:** [mitigation-evidence.md](mitigation-evidence.md) records repaired recurring bucket/cap generation, authenticated HTTP generation/read, immutable before/after PDFs, malformed-history guards, portal walkthrough and empty-transform repair. Seven of the ten open cases pass; T009, T015 and T016 remain incomplete. The sections below are historical evidence.
+**Acceptance closure:** [closure-evidence.md](closure-evidence.md) closes the final three cases — T009 (task-identity/hour-block production variants plus the disclosed historical ticketless fixtures; read its disclosure section first), T015 (visual from-scratch detail authoring with new palette presets, template `ccf9a9fb`) and T016 (6-fixture × 3-locale canvas/preview/PDF matrix). All 19 checklist tests are now implemented.
+
+**Prior mitigation:** [mitigation-evidence.md](mitigation-evidence.md) records repaired recurring bucket/cap generation, authenticated HTTP generation/read, immutable before/after PDFs, malformed-history guards, portal walkthrough and empty-transform repair. Seven of the ten open cases passed there; T009, T015 and T016 were completed by the closure round above. The sections below are historical evidence.
 
 **Review revisions (September 5):** see [revision-evidence.md](revision-evidence.md) for the three corrected designer defects, new cap/inline-adjustment and multi-tax generation, saved nested aliases, multi-page PDF inspection, and independently reproduced recurring billing blockers. The remainder of this file describes the earlier draft run.
 

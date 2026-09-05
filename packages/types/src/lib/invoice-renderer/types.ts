@@ -223,6 +223,7 @@ export interface WasmInvoiceViewModel {
   ticketPresentationRows?: InvoiceTicketPresentationRow[];
   ticketCoverageStatus?: 'complete' | 'partial' | 'unavailable' | 'none';
   ticketCoverageNote?: string;
+  ticketDetailNote?: string;
 }
 
 /**

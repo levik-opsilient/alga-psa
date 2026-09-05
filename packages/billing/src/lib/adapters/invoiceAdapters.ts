@@ -485,6 +485,7 @@ function attachTicketPresentation(
   const hasFallback = vm.items.some((item) => isTime(item.id) && !eligible.has(item.id));
   vm.ticketPresentationRows = rows;
   vm.ticketCoverageStatus = !hasTime ? 'none' : !hasFallback ? 'complete' : eligible.size ? 'partial' : 'unavailable';
+  vm.ticketDetailNote = '';
 }
 
 /**

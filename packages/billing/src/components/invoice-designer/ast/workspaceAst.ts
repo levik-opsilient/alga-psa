@@ -1019,8 +1019,8 @@ const mapDesignerNodeToAstNode = (
 	        // repeat its children once per item in a source collection. This
 	        // was added alongside `dynamic-table.repeat` as a compound-block
 	        // primitive for per-location (or other grouped) bands. Imported
-	        // AST nodes stash the original `repeat` on metadata; designer-
-	        // authored stacks simply omit it.
+	        // AST nodes retain the original repeat; visual presets author a
+	        // collection path which is registered like a table source.
 	        const metadata = getWorkspaceNodeMetadata(node);
 	        const importedRepeat = isRecord(metadata.__astStackRepeat)
 	          ? (metadata.__astStackRepeat as Record<string, unknown>)
@@ -1038,7 +1038,11 @@ const mapDesignerNodeToAstNode = (
 	          importedRepeat && typeof importedRepeat.keyPath === 'string' && importedRepeat.keyPath.trim().length > 0
 	            ? importedRepeat.keyPath.trim()
 	            : undefined;
-	        const repeat =
+	        const authoredRepeatSource = asTrimmedString(metadata.repeatCollectionBindingKey);
+	        const repeat = authoredRepeatSource
+	          ? { sourceBinding: { bindingId: resolveCollectionSourceBindingId(authoredRepeatSource, registerCollectionBinding, documentKind, transformOutputBindingId) },
+	              itemBinding: asTrimmedString(metadata.repeatItemBinding) || 'group' }
+	          :
 	          importedSourceBindingId.length > 0 && importedItemBinding.length > 0
 	            ? {
 	                sourceBinding: { bindingId: importedSourceBindingId },

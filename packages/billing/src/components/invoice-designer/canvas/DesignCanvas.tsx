@@ -26,6 +26,8 @@ import { resolveMediaFrameSize } from '../utils/mediaSizing';
 import { getNodeLayout, getNodeMetadata, getNodeName, getNodeStyle } from '../utils/nodeProps';
 import {
   isColumnHeaderTranslatable,
+  isTranslatableValue,
+  isTranslatableRef,
   isNodeLabelTranslatable,
   isNodeTextTranslatable,
 } from '../utils/translatableText';
@@ -656,12 +658,16 @@ const renderTablePreview = (
             )}
           >
             {isColumnHeaderTranslatable(column) && <TranslatableMark t={options.t} />}
-            {String(column.header ?? column.key ?? 'Column')}
+            {isColumnHeaderTranslatable(column) && isTranslatableRef(column.__astHeaderI18n)
+              ? options.presentationTranslator?.(column.__astHeaderI18n.i18nKey, { defaultValue: column.__astHeaderI18n.defaultValue }) ?? column.__astHeaderI18n.defaultValue
+              : String(column.header ?? column.key ?? 'Column')}
           </span>
         ))}
       </div>
       {visibleRows.length === 0 ? (
-        <div className="px-2 py-2 text-slate-400 italic">{options.t?.('designer.canvas.noLineItems', { defaultValue: 'No line items' }) ?? 'No line items'}</div>
+        <div className="px-2 py-2 text-slate-400 italic">{isTranslatableValue(metadata.emptyStateText, metadata.__astEmptyStateTextI18n) && isTranslatableRef(metadata.__astEmptyStateTextI18n)
+          ? options.presentationTranslator?.(metadata.__astEmptyStateTextI18n.i18nKey, { defaultValue: metadata.__astEmptyStateTextI18n.defaultValue }) ?? metadata.__astEmptyStateTextI18n.defaultValue
+          : asTrimmedString(metadata.emptyStateText) || options.t?.('designer.canvas.noLineItems', { defaultValue: 'No line items' }) || 'No line items'}</div>
       ) : (
         <div className="pt-1">
           {visibleRows.map((item, rowIndex) => {
@@ -792,10 +798,14 @@ const getPreviewContent = (node: DesignerNode, previewData: WasmInvoiceViewModel
       };
     }
     case 'text': {
-      const text =
+      const authoredText =
         asTrimmedString(metadata.text) ||
         asTrimmedString(metadata.label) ||
         asTrimmedString(metadata.content);
+      const expression = metadata.astContentExpression;
+      const text = isNodeTextTranslatable(node) && isTranslatableRef(expression)
+        ? presentationTranslator?.(expression.i18nKey, { defaultValue: expression.defaultValue }) ?? expression.defaultValue
+        : authoredText;
       const content = text.length > 0 ? text.slice(0, 140) : '';
 
       // Check for interpolation variables {{var}}

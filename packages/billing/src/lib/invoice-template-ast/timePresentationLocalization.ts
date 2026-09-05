@@ -8,6 +8,8 @@ const labels: Record<string, string> = {
   'time.task': 'Project task',
   'time.partial': 'Some billed time is shown as service charges because ticket detail is unavailable.',
   'time.unavailable': 'Ticket detail is unavailable. All charges are shown below.',
+  'time.detailPartial': 'Only available billed-time entries are included in this detail.',
+  'time.detailUnavailable': 'Billed-time entry detail is unavailable for this invoice.',
 };
 
 /** Pure localization of semantic renderer fields, including nested transform rows.
@@ -28,6 +30,11 @@ export function localizeTimePresentation<T>(value: T, t: TemplateLabelTranslator
     if (typeof row.ticketCoverageStatus === 'string') {
       const key = `time.${row.ticketCoverageStatus}`;
       row.ticketCoverageNote = labels[key] ? t(key, { defaultValue: labels[key] }) : '';
+      const hasIncompleteCoverage = ['partial', 'unavailable'].includes(row.ticketCoverageStatus);
+      const detailKey = hasIncompleteCoverage
+        ? Array.isArray(row.timeEntries) && row.timeEntries.length > 0 ? 'time.detailPartial' : 'time.detailUnavailable'
+        : '';
+      row.ticketDetailNote = detailKey ? t(detailKey, { defaultValue: labels[detailKey] }) : '';
     }
     return row;
   };
@@ -35,7 +42,11 @@ export function localizeTimePresentation<T>(value: T, t: TemplateLabelTranslator
 }
 
 /** A serializable document-locale dictionary for the canvas. */
-export const timePresentationLabels = (t: TemplateLabelTranslator): Record<string, string> =>
+export const timePresentationLabels = (
+  // Unsupported locales fall back to the authored defaults, matching the
+  // document render seam's fallback-to-English contract.
+  t: TemplateLabelTranslator = (_key, options) => options.defaultValue
+): Record<string, string> =>
   Object.fromEntries(Object.entries(labels).map(([key, defaultValue]) => [key, t(key, { defaultValue })]));
 
 /** Presentation fields are derived, never locale-dependent transform inputs.
@@ -51,7 +62,7 @@ export function neutralizeTimePresentation<T>(value: T): T {
       else if (row.rateKind === 'uniform') row.rateDisplay = row.rate;
       if (typeof row.labelKey === 'string' && labels[row.labelKey]) row.label = '';
     }
-    if (typeof row.ticketCoverageStatus === 'string') row.ticketCoverageNote = '';
+    if (typeof row.ticketCoverageStatus === 'string') { row.ticketCoverageNote = ''; row.ticketDetailNote = ''; }
     return row;
   };
   return visit(value) as T;

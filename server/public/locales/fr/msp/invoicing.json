@@ -1385,6 +1385,14 @@
       "modern-invoice-complete": {
         "label": "Modèle de facture moderne",
         "description": "Mise en page complète avec en-tête, infos de facturation, tableau des lignes et pied de page."
+      },
+      "billed-time-entries": {
+        "label": "Détail des écritures de temps facturé",
+        "description": "Ajouter un tableau informatif des dates, éléments de travail, heures, tarifs et montants."
+      },
+      "billed-time-by-ticket": {
+        "label": "Détail du temps facturé par ticket",
+        "description": "Répéter un en-tête et le tableau de ses écritures pour chaque ticket ou tâche."
       }
     },
     "schema": {
