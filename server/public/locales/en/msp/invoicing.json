@@ -1840,7 +1840,8 @@
         "transformsSource": "{{binding}} (Transforms source)",
         "transformsOutput": "{{binding}} (Transforms output)",
         "ticketGroups": "Billed Time by Ticket",
-        "timeEntries": "Billed Time Entries"
+        "timeEntries": "Billed Time Entries",
+        "ticketPresentationRows": "Charges by Ticket"
       },
       "presets": {
         "description": {

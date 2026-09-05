@@ -139,6 +139,12 @@ export type ResolvedContractBillingChargeFacts =
         customRate?: number | null;
         currencyRate?: number | string | null;
         billableMinutes: number;
+        workItemId?: string | null;
+        workItemType?: string | null;
+        ticketNumber?: string | null;
+        ticketTitle?: string | null;
+        ticketDescription?: string | null;
+        projectTaskName?: string | null;
         billingProfileId?: string | null;
       }>;
     })

@@ -2,6 +2,7 @@
 'use server'
 
 import crypto from 'crypto';
+import { localizeTimePresentation } from '../lib/invoice-template-ast/timePresentationLocalization';
 import { withAuth } from '@alga-psa/auth';
 import { hasPermission } from '@alga-psa/auth/rbac';
 import type { WasmInvoiceViewModel } from '@alga-psa/types';
@@ -33,6 +34,8 @@ type AuthoritativePreviewDiagnostic = {
 };
 
 type AuthoritativePreviewResult = {
+  presentationData?: WasmInvoiceViewModel;
+  effectiveLocale?: string;
   success: boolean;
   sourceHash: string | null;
   generatedSource: string | null;
@@ -155,8 +158,10 @@ export const runAuthoritativeInvoiceTemplatePreview = withAuth(
       );
       // Same seam the PDF path uses, so the preview is authoritative.
       const localized = await localizeTemplateAstForLocale(validation.ast, input.locale);
-      const rendered = await renderEvaluatedTemplateAst(localized.ast, evaluation, { locale: localized.locale });
+      const rendered = await renderEvaluatedTemplateAst(localized.ast, evaluation, { locale: localized.locale, t: localized.t });
       return {
+        presentationData: localizeTimePresentation(input.invoiceData, localized.t),
+        effectiveLocale: localized.locale ?? 'en',
         success: true,
         sourceHash,
         generatedSource,

@@ -1840,7 +1840,8 @@
         "transformsSource": "{{binding}} (transformatiebron)",
         "transformsOutput": "{{binding}} (transformatie-uitvoer)",
         "ticketGroups": "Gefactureerde tijd per ticket",
-        "timeEntries": "Gefactureerde tijdregistraties"
+        "timeEntries": "Gefactureerde tijdregistraties",
+        "ticketPresentationRows": "Kosten per ticket"
       },
       "presets": {
         "description": {

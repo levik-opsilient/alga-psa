@@ -2,7 +2,7 @@
 
 - Slug: `invoice-ticket-presentation`
 - Date: 2026-09-04
-- Status: Design complete; implementation and behavioral verification pending
+- Status: Local draft implemented; verification and remaining acceptance matrix in evidence/README.md
 - Related work: alga0002322; [merged predecessor PR #3314](https://github.com/Nine-Minds/alga-psa/pull/3314), revision `45d8f81f875322342923a00bc81c4bd2cf4c40e7`
 
 ## Summary

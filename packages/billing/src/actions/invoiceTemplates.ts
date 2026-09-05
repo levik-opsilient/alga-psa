@@ -458,6 +458,7 @@ export const renderTemplateOnServer = withAuth(async (
         const localized = await localizeTemplateAstForLocale(templateAst, recipientLocale);
         const { html, css } = await renderEvaluatedTemplateAst(localized.ast, evaluation, {
           locale: localized.locale,
+          t: localized.t,
         });
 
         console.log(`[Server Action] Successfully rendered template: ${templateId ?? 'inline-templateAst'}`);

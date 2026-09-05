@@ -63,3 +63,15 @@ git diff --check
 - Plan schema validation passed: 29 features, 19 tests, valid feature references.
 - Additional handoff checks verify unique IDs, coverage of every feature by at least one test, all flags false, and PRD section references.
 - No implementation, billing-generation, database, browser, or PDF tests were run for this design-only assignment.
+
+## Local draft completion and fresh verification (2026-09-05 UTC)
+
+- Preserved the substantial existing draft. Reviewed atomic charge replacement, nullable immutable provenance migration, all-link reads, version-2 calculator/persistence paths, and both contract normalization directions.
+- Fixed shared-descriptor compatibility for quote/sales-order item paths and ensured group wrappers expose only evaluator-produced fields. Strengthened real calculator, normalization, mixed-plus-unknown, filter/group and saved document-kind rendering tests.
+- Strengthened opt-in production acceptance with a real QuickBooks CSV transform and persisted synthetic service mappings; no outbound delivery. Added exact post-adjustment subtotal/tax/total/applied-credit assertions and a configurable evidence directory. Custom acceptance now requires explicit invoice/template identifiers and checks sorted saved output.
+- Existing calculator regression had one stale version-1 assertion; updated it for version 2 and added rate provenance assertions to the existing rounding and override cases. All 41 calculator regression tests passed.
+- Fresh generation: four approved entries across two tickets plus usage, five canonical charges, three primary presentation rows, 87500 net and 8750 tax. Source edits leave the full renderer model and canonical accounting export unchanged. Supported manual discount/credit/zero rows reconcile to 86000 net, 8750 tax, 94750 total, and separate 2500 applied credit.
+- Live existing-layout UI editing, sort binding, Date column, save/reopen, French canvas/full preview and generated PDF completed. Visual PDF inspection confirms readable rows and localized mixed rates. Existing custom literal headings remain authored text.
+- Billing typecheck/build and server typecheck passed. Server typecheck required a larger heap. Full webpack build exhausted its default 8 GB; the isolated 16 GB retry subsequently passed (exit 0), with warnings in unchanged scheduling/workflow modules. Explicit typechecks passed separately because Next skips type validation during build.
+- `evidence/README.md` is the reviewer entry point, including precise new/prior artifact paths, commands, mocks and remaining extended matrix. Feature flags describe implemented code; broader test scenarios remain false where coverage is partial. No portal capability is claimed or linked.
+- Unrelated lockfile and migration CLI mode modifications remain untouched and excluded. No push or PR is authorized for this draft.

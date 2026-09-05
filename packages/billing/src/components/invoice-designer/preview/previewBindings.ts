@@ -1,3 +1,6 @@
+import { evaluateTemplateAst } from '../../../lib/invoice-template-ast/evaluator';
+import { buildInvoiceTemplateBindings } from '../../../lib/invoice-template-ast/standardTemplates';
+import type { TemplateAst, TemplateNode } from '@alga-psa/types';
 import type { TemplateFieldDisplayFormat, WasmInvoiceViewModel } from '@alga-psa/types';
 import {
   formatTemplateFieldValue,
@@ -43,13 +46,16 @@ const getModelPathValue = (model: unknown, path: string): unknown => {
 
 export const resolveInvoiceBindingRawValue = (
   invoice: WasmInvoiceViewModel | null,
-  bindingKey: string
+  bindingKey: string,
+  scope?: Record<string, unknown>
 ): unknown => {
   if (!invoice) {
     return null;
   }
 
   const normalizedKey = asTrimmedString(bindingKey);
+  const scopedValue = scope ? getModelPathValue(scope, normalizedKey) : undefined;
+  if (scopedValue !== undefined) return scopedValue;
   if (!normalizedKey) {
     return null;
   }
@@ -83,12 +89,14 @@ export const normalizeFieldFormat = normalizeTemplateFieldFormat;
 export const formatBoundValue = (
   value: unknown,
   format: unknown,
-  currencyCode: string
+  currencyCode: string,
+  locale?: string
 ): string | null =>
   formatTemplateFieldValue({
     value,
     format,
     currencyCode,
+    locale,
   }).text;
 
 export const resolveFieldPreviewValue = (params: {
@@ -96,14 +104,17 @@ export const resolveFieldPreviewValue = (params: {
   bindingKey: string;
   format: unknown;
   displayFormat?: TemplateFieldDisplayFormat | null;
+  locale?: string;
+  scope?: Record<string, unknown>;
 }): { text: string | null; multiline: boolean } => {
-  const raw = resolveInvoiceBindingRawValue(params.invoice, params.bindingKey);
+  const raw = resolveInvoiceBindingRawValue(params.invoice, params.bindingKey, params.scope);
   if (isNullish(raw)) {
     return { text: null, multiline: false };
   }
   return formatTemplateFieldValue({
     value: raw,
     format: params.format,
+    locale: params.locale,
     currencyCode: params.invoice?.currencyCode ?? 'USD',
     displayFormat: supportsAddressDisplayFormat(params.bindingKey) ? params.displayFormat : undefined,
   });
@@ -133,30 +144,52 @@ export const resolveTableItemBindingRawValue = (
   return resolveInvoiceBindingRawValue(invoice, normalizedKey);
 };
 
-/**
- * Map a table's collection binding id to the sample rows the WYSIWYG canvas
- * should preview. Known collection bindings resolve to their view-model
- * arrays; unknown ids fall back to `items` so legacy workspaces keep their
- * previous behavior.
- */
-const CANVAS_COLLECTION_PATHS: Record<string, keyof WasmInvoiceViewModel> = {
-  items: 'items',
-  lineItems: 'items',
-  recurringItems: 'recurringItems',
-  onetimeItems: 'onetimeItems',
-  groupsByLocation: 'groupsByLocation',
-  ticketGroups: 'ticketGroups',
-  timeEntries: 'timeEntries',
+/** Resolve the same evaluated collection used by full preview/PDF. Explicit
+ * unknown bindings never substitute canonical items. Row scope supports nested detail. */
+export const resolveCanvasCollection = (
+  invoice: WasmInvoiceViewModel | null,
+  sourceBindingId: string,
+  ast?: TemplateAst | null,
+  scope?: Record<string, unknown>,
+): { rows: Record<string, unknown>[]; diagnostic?: string } => {
+  if (ast === null) return { rows: [], diagnostic: 'The current layout cannot be evaluated.' };
+  if (!invoice) return { rows: [] };
+  const id = sourceBindingId.trim();
+  const template = ast ?? { kind: 'invoice-template-ast', version: 1, bindings: buildInvoiceTemplateBindings(), layout: { id: 'canvas', type: 'document', children: [] } } as TemplateAst;
+  try {
+    const evaluation = evaluateTemplateAst(template, invoice as unknown as Record<string, unknown>);
+    const scopedPath = template.bindings?.collections?.[id]?.path ?? id;
+    const scoped = scope ? getModelPathValue(scope, scopedPath) : undefined;
+    const pathBinding = Object.entries(template.bindings?.collections ?? {}).find(([, binding]) => binding.path === id)?.[0];
+    const value = scoped ?? evaluation.bindings[id] ?? (pathBinding ? evaluation.bindings[pathBinding] : undefined);
+    if (!Array.isArray(value)) return { rows: [], diagnostic: `Collection "${id}" is missing or is not an array.` };
+    return { rows: value as Record<string, unknown>[] };
+  } catch (error) {
+    return { rows: [], diagnostic: error instanceof Error ? error.message : String(error) };
+  }
 };
 
 export const resolveCanvasCollectionRows = (
   invoice: WasmInvoiceViewModel | null,
-  sourceBindingId: string
-): Record<string, unknown>[] => {
-  if (!invoice) {
-    return [];
-  }
-  const path = CANVAS_COLLECTION_PATHS[asTrimmedString(sourceBindingId)] ?? 'items';
-  const value: unknown = invoice[path];
-  return Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
-};
+  sourceBindingId: string,
+  ast?: TemplateAst | null,
+  scope?: Record<string, unknown>,
+): Record<string, unknown>[] => resolveCanvasCollection(invoice, sourceBindingId, ast, scope).rows;
+
+/** Canvas shows the first repetition of an imported repeating region. Resolve
+ * that region's actual row scope so nested detail never borrows invoice items. */
+export function resolveCanvasRowScope(invoice: WasmInvoiceViewModel | null, ast: TemplateAst | null | undefined, nodeId: string): Record<string, unknown> | undefined {
+  if (!ast) return undefined;
+  let result: Record<string, unknown> | undefined;
+  const visit = (node: TemplateNode, scope: Record<string, unknown>): boolean => {
+    if (node.id === nodeId) { result = scope; return true; }
+    let childScope = scope;
+    if (node.type === 'stack' && node.repeat) {
+      const { rows } = resolveCanvasCollection(invoice, node.repeat.sourceBinding.bindingId, ast, scope);
+      childScope = { ...scope, [node.repeat.itemBinding]: rows[0] ?? {} };
+    }
+    return 'children' in node && (node.children?.some((child) => visit(child, childScope)) ?? false);
+  };
+  visit(ast.layout, {});
+  return result;
+}

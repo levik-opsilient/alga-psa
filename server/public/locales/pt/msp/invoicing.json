@@ -1840,7 +1840,8 @@
         "transformsSource": "{{binding}} (origem das transformações)",
         "transformsOutput": "{{binding}} (saída das transformações)",
         "ticketGroups": "Tempo faturado por ticket",
-        "timeEntries": "Lançamentos de horas faturados"
+        "timeEntries": "Lançamentos de horas faturados",
+        "ticketPresentationRows": "Cobranças por ticket"
       },
       "presets": {
         "description": {

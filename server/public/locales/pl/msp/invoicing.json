@@ -1890,7 +1890,8 @@
         "transformsSource": "{{binding}} (źródło transformacji)",
         "transformsOutput": "{{binding}} (wynik transformacji)",
         "ticketGroups": "Rozliczony czas według zgłoszeń",
-        "timeEntries": "Rozliczone wpisy czasu"
+        "timeEntries": "Rozliczone wpisy czasu",
+        "ticketPresentationRows": "Opłaty według zgłoszenia"
       },
       "presets": {
         "description": {

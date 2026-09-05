@@ -2,7 +2,7 @@
   {
     "id": "F001",
     "description": "Preserve every immutable time-entry link, including unavailable or invalid snapshots, with owning charge identity so completeness can be established without live source joins.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R1. Charge coverage and replacement"
     ]
@@ -10,7 +10,7 @@
   {
     "id": "F002",
     "description": "Validate supported snapshot versions, finite integer amounts and minutes, unique link ownership, time-only provenance, and exact charge-level net coverage before allowing replacement.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R1. Charge coverage and replacement"
     ]
@@ -18,7 +18,7 @@
   {
     "id": "F003",
     "description": "Expose a renderer-only complete primary collection that replaces eligible time-charge contributions with work-item rollups while retaining canonical items and accounting data unchanged.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R1. Charge coverage and replacement"
     ]
@@ -26,7 +26,7 @@
   {
     "id": "F004",
     "description": "Fall back atomically to the original charge for incomplete or conflicting coverage, and to all canonical charges if a whole-invoice partition cannot be established.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R1. Charge coverage and replacement"
     ]
@@ -34,7 +34,7 @@
   {
     "id": "F005",
     "description": "Aggregate eligible entries and service charges for each ticket into one primary row with stable ordering and internal contribution references.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R2. Fallbacks, mixed services, and financial treatments"
     ]
@@ -42,7 +42,7 @@
   {
     "id": "F006",
     "description": "Group eligible project-task and ticketless time using immutable identity and work-type labels, preserving separate tasks with the same name and safe missing-label fallbacks.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R2. Fallbacks, mixed services, and financial treatments"
     ]
@@ -50,7 +50,7 @@
   {
     "id": "F007",
     "description": "Keep products, fixed fees, usage, expenses, prepaid/hour-block information, and mixed time/non-time charges visible once with original quantities and service periods.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R2. Fallbacks, mixed services, and financial treatments"
     ]
@@ -58,7 +58,7 @@
   {
     "id": "F008",
     "description": "Preserve signed line discounts, credits, zero rows, invoice-level tax/discount/credit/balance treatment, and adjustment associations without redistributing them among ticket rollups.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R2. Fallbacks, mixed services, and financial treatments"
     ]
@@ -66,7 +66,7 @@
   {
     "id": "F009",
     "description": "Retain canonical time-charge rows when inline adjustments, bucket treatment, or project cap write-downs invalidate snapshot amount coverage, with no invented rate or residual amount.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R2. Fallbacks, mixed services, and financial treatments"
     ]
@@ -74,7 +74,7 @@
   {
     "id": "F010",
     "description": "Add a backward-readable version-2 snapshot contract with explicit uniform/mixed/unknown rate state and nullable proven uniform rate while preserving provenance and exact billed totals.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R3. Immutable rate semantics"
     ]
@@ -82,7 +82,7 @@
   {
     "id": "F011",
     "description": "Capture within-entry rate state from the actual regular/overtime calculation without changing rate resolution, duration rules, rounding, or billing amounts.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R3. Immutable rate semantics"
     ]
@@ -90,7 +90,7 @@
   {
     "id": "F012",
     "description": "Capture appropriate version-2 rate evidence in unresolved/catalog generation and invalidate stale uniform display evidence after supported amount adjustments.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R3. Immutable rate semantics"
     ]
@@ -98,7 +98,7 @@
   {
     "id": "F013",
     "description": "Persist version-2 snapshot data with source linkage and invoiced marking in the existing transaction and supply equivalent metadata to production previews.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R3. Immutable rate semantics"
     ]
@@ -106,7 +106,7 @@
   {
     "id": "F014",
     "description": "Render version-1 rate evidence as unavailable without backfill, effective-rate inference, or changes to persisted historical snapshots.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R3. Immutable rate semantics"
     ]
@@ -114,7 +114,7 @@
   {
     "id": "F015",
     "description": "Derive entry and ticket rate displays from semantic evidence, including known mixed plus unknown entries, between-entry mixed rates, and proven zero-rate controls; preserve safe compatibility bindings.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R3. Immutable rate semantics"
     ]
@@ -122,7 +122,7 @@
   {
     "id": "F016",
     "description": "Change only the selected standard by-ticket layout to a single complete primary table with readable time/non-time columns and authoritative totals.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "UX / UI Notes > Primary charge table"
     ]
@@ -130,7 +130,7 @@
   {
     "id": "F017",
     "description": "Provide explicit optional entry/nested-entry supporting detail with included-in-charges and incomplete-detail wording, preserving existing authored custom layout structure.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "UX / UI Notes > Optional supporting detail"
     ]
@@ -138,7 +138,7 @@
   {
     "id": "F018",
     "description": "Publish shared document-kind collection descriptors for primary invoice charges, time detail, and ticket detail with fields, nested scopes, types, aliases, and preset metadata.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R4. Shared collection metadata and resolution"
     ]
@@ -146,7 +146,7 @@
   {
     "id": "F019",
     "description": "Use shared descriptors in table source selection, Add column presets, field suggestions, and transform source/field authoring, including empty preview datasets.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R4. Shared collection metadata and resolution"
     ]
@@ -154,7 +154,7 @@
   {
     "id": "F020",
     "description": "Resolve canvas source and transform rows from the current AST/evaluated binding map with the same aliases and row scope used by full preview and PDF.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R4. Shared collection metadata and resolution"
     ]
@@ -162,7 +162,7 @@
   {
     "id": "F021",
     "description": "Show empty/error diagnostics for explicit missing, non-array, or unsupported bindings without substituting invoice items; normalize only source-less legacy layouts to the correct canonical source.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R4. Shared collection metadata and resolution"
     ]
@@ -170,7 +170,7 @@
   {
     "id": "F022",
     "description": "Preserve source fields and presets through sort/filter transforms and expose actual group/aggregate output schemas and nested entry fields for shape-changing operations.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R4. Shared collection metadata and resolution"
     ]
@@ -178,7 +178,7 @@
   {
     "id": "F023",
     "description": "Persist collection choices, transform source/output IDs, columns, and nested row scopes through save/reopen and workspace/AST roundtrip without transient UI metadata dependencies.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R4. Shared collection metadata and resolution"
     ]
@@ -186,7 +186,7 @@
   {
     "id": "F024",
     "description": "Localize semantic rate displays, work-type fallbacks, coverage notes, and optional-detail text using the existing document translator and effective locale across canvas, full preview, and PDF.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R5. Document localization and portal guidance"
     ]
@@ -194,7 +194,7 @@
   {
     "id": "F025",
     "description": "Provide English and French document/authoring labels and preserve locale-aware money/date formatting and consistent locale-load fallback without translating customer text.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R5. Document localization and portal guidance"
     ]
@@ -202,7 +202,7 @@
   {
     "id": "F026",
     "description": "Replace unsupported portal entry/rate claims with a service-provider breakdown instruction and offer ticket-update guidance only after client-visible access and route verification.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R5. Document localization and portal guidance"
     ]
@@ -210,7 +210,7 @@
   {
     "id": "F027",
     "description": "Update invoice-template instructions, catalog descriptions, and relevant designer help to explain the complete primary source, optional detail, mixed rates, and legacy/partial fallback.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "R5. Document localization and portal guidance"
     ]
@@ -218,7 +218,7 @@
   {
     "id": "F028",
     "description": "Preserve canonical accounting mappings/descriptions, immutable snapshots, archived PDFs, standard layouts outside by-ticket, and custom layouts/document kinds that do not opt into the new presentation.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "Rollout / Migration"
     ]
@@ -226,7 +226,7 @@
   {
     "id": "F029",
     "description": "Keep customer-only snapshot/renderer fields and tenant-scoped reads intact through new coverage metadata, transformed collections, optional detail, and document generation.",
-    "implemented": false,
+    "implemented": true,
     "prdRefs": [
       "Security / Permissions"
     ]

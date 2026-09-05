@@ -2274,6 +2274,13 @@ export class BillingEngine {
           originalAmount,
         );
         charge.total = writeDown.billable;
+        if (charge.type === 'time' && 'entryId' in charge) {
+          const timeCharge = charge as ProjectAnnotatedCharge & ITimeBasedCharge;
+          const snapshot = timeCharge.workItemSnapshot;
+          if (snapshot?.version === 2 && snapshot.rateKind === 'uniform' && snapshot.netAmount !== charge.total) {
+            timeCharge.workItemSnapshot = { ...snapshot, rateKind: 'unknown', uniformRate: null };
+          }
+        }
         charge.write_down_amount = writeDown.writtenDown;
         if (writeDown.writtenDown > 0) {
           charge.write_down_reason = "project_cap";
@@ -2777,6 +2784,8 @@ export class BillingEngine {
         total,
         workItemSnapshot: buildTimeEntryWorkItemSnapshot(entry, {
           billedMinutes: billableMinutes,
+          rateKind: 'uniform',
+          uniformRate: rate,
           rate,
           netAmount: total,
           serviceId: effectiveServiceId ?? null,

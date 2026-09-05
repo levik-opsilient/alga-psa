@@ -1840,7 +1840,8 @@
         "transformsSource": "{{binding}} (Transformationsquelle)",
         "transformsOutput": "{{binding}} (Transformationsausgabe)",
         "ticketGroups": "Abgerechnete Zeit nach Ticket",
-        "timeEntries": "Abgerechnete Zeiteinträge"
+        "timeEntries": "Abgerechnete Zeiteinträge",
+        "ticketPresentationRows": "Leistungen nach Ticket"
       },
       "presets": {
         "description": {

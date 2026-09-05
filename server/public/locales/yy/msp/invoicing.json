@@ -1840,7 +1840,8 @@
         "transformsSource": "〖{{binding}} (Ŧřȧƞşƒȯřḿş şȯŭřƈḗ) ·············〗",
         "transformsOutput": "〖{{binding}} (Ŧřȧƞşƒȯřḿş ȯŭŧƥŭŧ) ·············〗",
         "ticketGroups": "〖Ɓīŀŀḗḓ Ŧīḿḗ ƀẏ Ŧīƈķḗŧ ·········〗",
-        "timeEntries": "〖Ɓīŀŀḗḓ Ŧīḿḗ Ḗƞŧřīḗş ········〗"
+        "timeEntries": "〖Ɓīŀŀḗḓ Ŧīḿḗ Ḗƞŧřīḗş ········〗",
+        "ticketPresentationRows": "22222"
       },
       "presets": {
         "description": {

@@ -476,12 +476,19 @@ export const evaluateTemplateAst = (
     );
   }
 
-  const sourceValue = resolveBindingValue(
+  let sourceValue = resolveBindingValue(
     ast,
     ast.transforms.sourceBindingId,
     invoiceData,
     options?.bindingAliases
   );
+  // Billed-time collections are optional on legacy invoices. An explicitly
+  // declared, supported collection has zero rows when no snapshot data exists.
+  // Invalid values and unknown binding IDs still fail with a diagnostic.
+  const sourcePath = ast.bindings?.collections?.[ast.transforms.sourceBindingId]?.path;
+  if (sourceValue == null && sourcePath && ['timeEntries', 'ticketGroups', 'ticketPresentationRows'].includes(sourcePath)) {
+    sourceValue = [];
+  }
   if (!Array.isArray(sourceValue)) {
     throw new TemplateEvaluationError(
       'INVALID_SOURCE_COLLECTION',

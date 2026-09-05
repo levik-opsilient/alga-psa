@@ -2,7 +2,7 @@
   {
     "id": "T001",
     "description": "Generate an invoice from approved source time for two tickets and multiple services plus a real non-time charge through generateInvoice or the supported selection-input action. Use real compute, persistence, reader, adapter, and renderer. Reconcile contribution identities and minor-unit amounts to persisted charges and assert exactly one usual-case primary row per ticket, every other charge once, and no duplicate time-charge table.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F001",
       "F002",
@@ -17,7 +17,7 @@
   {
     "id": "T002",
     "description": "Exercise the actual calculator with 60 minutes at 15000 plus 60 overtime minutes at 22500. Assert 120 minutes, 37500 net, version-2 mixed evidence, and mixed/null rate in both entry and ticket output. Render actual HTML and assert neither $150 nor $187.50 is claimed as the uniform rate for the 2-hour amount. Include equal overtime rates as a uniform control.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F010",
       "F011",
@@ -52,7 +52,7 @@
   {
     "id": "T005",
     "description": "Trigger the production already-invoiced/duplicate source guard against migrated schema after setting up source fixtures. Verify actual queried invoice-time links, snapshots, and source invoiced flags show no partial commit or extra charge. Do not mock the transaction, generation result, or persistence layer.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F002",
       "F013",
@@ -126,7 +126,7 @@
   {
     "id": "T011",
     "description": "Read persisted version-1 uniform-looking and overtime-shaped snapshots plus version-2 known/unknown entries. Assert v1 remains byte-unchanged and displays Rate unavailable even when amount equals stored rate times hours. Test group precedence: known mixed plus unknown is mixed; equal known rates plus unknown is unknown; differing proven rates are mixed.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F010",
       "F014",
@@ -138,7 +138,7 @@
   {
     "id": "T012",
     "description": "Open an existing saved custom invoice layout through the UI, select billed-time data, add Ticket/Hours/Rate/Amount columns, create a sort transform, bind its output, save, close and reopen. Compare actual canvas/full-preview/generated-PDF rows, order, rate states and amounts on the same generated invoice; capture screenshots and PDF text. Repeat the primary-source choice to verify its complete charge presentation.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F016",
       "F018",
@@ -164,7 +164,7 @@
   {
     "id": "T014",
     "description": "Render actual saved AST/workspace cases using canonical aliases, an explicit custom collection path, nested entry scope, transform output, valid empty source, missing binding and non-array source. Assert intended rows or visible empty/error states in canvas and full preview, never unrelated items. Roundtrip through save/import and verify the same behavior, including source-less legacy normalization.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F018",
       "F020",
@@ -211,7 +211,7 @@
   {
     "id": "T018",
     "description": "Run canonical export payload construction for the same generated invoice before/after applying presentation projection and compare descriptions, service/account mappings, quantities, net/tax values and totals. Render representative non-opted-in custom, default/location invoice, quote and sales-order layouts, and verify canonical row resolution and authored columns remain unchanged. Confirm saved custom ASTs are not automatically rewritten.",
-    "implemented": false,
+    "implemented": true,
     "featureIds": [
       "F003",
       "F008",

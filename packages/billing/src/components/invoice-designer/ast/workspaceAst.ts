@@ -1150,7 +1150,7 @@ const mapDesignerNodeToAstNode = (
         type: 'dynamic-table',
         repeat: {
           sourceBinding: { bindingId: sourceBindingId },
-          itemBinding: 'item',
+          itemBinding: asTrimmedString(metadata.__astTableItemBinding) || 'item',
         },
         columns: mapTableColumns(node, documentKind),
         headerStyle,
@@ -1863,6 +1863,8 @@ export const importTemplateAstToWorkspace = (
             metadata.placeholder = inputNode.placeholder;
           }
         } else if (inputNode.type === 'dynamic-table' || inputNode.type === 'table') {
+          const rowBinding = inputNode.type === 'dynamic-table' ? inputNode.repeat.itemBinding : inputNode.rowBinding;
+          metadata.__astTableItemBinding = rowBinding;
           const rawBindingId =
             inputNode.type === 'dynamic-table'
               ? inputNode.repeat.sourceBinding.bindingId
@@ -1884,7 +1886,9 @@ export const importTemplateAstToWorkspace = (
             const mappedColumn: Record<string, unknown> = {
               id: column.id,
               header: importedHeader.text,
-              key: column.value.type === 'path' ? `item.${column.value.path}` : column.id,
+              key: column.value.type === 'path'
+                ? column.value.path.startsWith(`${rowBinding}.`) ? column.value.path : `item.${column.value.path}`
+                : column.id,
               valueExpression: column.value,
               ...(importedHeader.ref ? { __astHeaderI18n: importedHeader.ref } : {}),
             };

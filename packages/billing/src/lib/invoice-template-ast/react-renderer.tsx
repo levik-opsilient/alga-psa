@@ -1,3 +1,5 @@
+import { localizeTimePresentation } from './timePresentationLocalization';
+import type { TemplateLabelTranslator } from './i18nLabels';
 import React from 'react';
 import { formatCurrencyFromMinorUnits } from '@alga-psa/core';
 import type {
@@ -339,7 +341,7 @@ const resolveExpressionValue = (
       const resolvedValue =
         rowValue !== undefined
           ? rowValue
-          : getPathValue(evaluation.bindings.invoice, parsedPath.path);
+          : getPathValue(scope.items, parsedPath.path) ?? getPathValue(evaluation.bindings.invoice, parsedPath.path);
 
       if (resolvedValue === undefined) {
         return undefined;
@@ -367,7 +369,7 @@ const resolveExpressionValue = (
             return String(rowValue);
           }
         }
-        const invoiceValue = getPathValue(evaluation.bindings.invoice, name);
+        const invoiceValue = getPathValue(scope.items, name) ?? getPathValue(evaluation.bindings.invoice, name);
         return String(invoiceValue ?? '');
       });
     }
@@ -575,7 +577,7 @@ const renderNode = (
               rows.map((row, index) => (
                 <tr key={`${node.id}-row-${index}`}>
                   {node.columns.map((column) => {
-                    const value = resolveExpressionValue(column.value, evaluation, { row }, ctx);
+                    const value = resolveExpressionValue(column.value, evaluation, { ...scope, row, items: { ...scope.items, [node.rowBinding]: row } }, ctx);
                     const { className: colClassName, style: colStyle } = resolveStyleRef(column.style);
                     const alignRight = column.format === 'currency' || column.format === 'number';
                     return (
@@ -626,7 +628,7 @@ const renderNode = (
               rows.map((row, index) => (
                 <tr key={`${node.id}-row-${index}`}>
                   {node.columns.map((column) => {
-                    const value = resolveExpressionValue(column.value, evaluation, { row }, ctx);
+                    const value = resolveExpressionValue(column.value, evaluation, { ...scope, row, items: { ...scope.items, [node.repeat.itemBinding]: row } }, ctx);
                     const { className: colClassName, style: colStyle } = resolveStyleRef(column.style);
                     const alignRight = column.format === 'currency' || column.format === 'number';
                     return (
@@ -684,6 +686,7 @@ export interface TemplateReactRendererProps {
    * currency so formatting never diverges from the language of the labels.
    */
   locale?: string;
+  t?: TemplateLabelTranslator;
 }
 
 export const TemplateAstRenderer: React.FC<TemplateReactRendererProps> = ({ ast, evaluation, locale: localeOverride }) => {
@@ -710,6 +713,7 @@ export interface TemplateRenderOutput {
 export interface TemplateRenderOptions {
   /** The recipient's locale; falls back to `metadata.locale`, then `en-US`. */
   locale?: string;
+  t?: TemplateLabelTranslator;
 }
 
 export const renderEvaluatedTemplateAst = async (
@@ -723,7 +727,7 @@ export const renderEvaluatedTemplateAst = async (
   const normalizedAst = normalizeTemplateAstFieldBorderDefaults(ast);
   return {
     html: renderToStaticMarkup(
-      <TemplateAstRenderer ast={normalizedAst} evaluation={evaluation} locale={options.locale} />
+      <TemplateAstRenderer ast={normalizedAst} evaluation={localizeTimePresentation(evaluation, options.t)} locale={options.locale} />
     ),
     css: buildAstCss(normalizedAst),
   };

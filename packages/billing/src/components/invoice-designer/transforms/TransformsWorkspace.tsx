@@ -1,5 +1,7 @@
 'use client';
 
+import { INVOICE_COLLECTION_DESCRIPTORS, humanizeCollectionBindingLabel, resolveCollectionDescriptor } from '../../../lib/invoice-template-ast/collectionDescriptors';
+
 import React, { useEffect, useMemo, useState } from 'react';
 import type { TFunction } from 'i18next';
 import { generateUUID } from '@alga-psa/core';
@@ -361,18 +363,26 @@ const TransformsWorkspace: React.FC<Props> = ({
   );
 
   const sourceFieldPaths = useMemo(
-    () => Array.from(discoverFieldPaths(sourceCollection[0] ?? {})).filter((path) => !path.includes('*')).sort(),
-    [sourceCollection]
+    () => resolveCollectionDescriptor(transforms.sourceBindingId, undefined, baseAst)?.fields.map((field) => field.name) ?? Array.from(discoverFieldPaths(sourceCollection[0] ?? {})).filter((path) => !path.includes('*')).sort(),
+    [sourceCollection, transforms.sourceBindingId, baseAst]
   );
 
   const sourceCollectionOptions = useMemo(() => {
     const options: CollectionOption[] = Object.entries(baseAst.bindings?.collections ?? {}).map(([bindingId, binding]) => ({
       value: bindingId,
-      label: `${bindingId} (${binding.path})`,
+      label: `${humanizeCollectionBindingLabel(bindingId, binding.path, t)} (${binding.path})`,
       path: binding.path,
       rowCount: Array.isArray(getPathValue(previewData, binding.path)) ? (getPathValue(previewData, binding.path) as unknown[]).length : null,
       source: 'binding',
     }));
+
+    if (previewDocumentKind === 'invoice') {
+      for (const descriptor of INVOICE_COLLECTION_DESCRIPTORS) {
+        if (options.some((option) => option.path === descriptor.path)) continue;
+        const value = getPathValue(previewData, descriptor.path);
+        options.push({ value: descriptor.id, label: humanizeCollectionBindingLabel(descriptor.id, descriptor.path, t), path: descriptor.path, rowCount: Array.isArray(value) ? value.length : 0, source: 'binding' });
+      }
+    }
 
     discoverCollectionPaths(previewData).forEach((path) => {
       if (options.some((option) => option.path === path || option.value === path)) {
@@ -402,7 +412,7 @@ const TransformsWorkspace: React.FC<Props> = ({
     }
 
     return options.sort((left, right) => left.label.localeCompare(right.label));
-  }, [baseAst, collectionPathById, previewData, sourceCollection.length, transforms.sourceBindingId]);
+  }, [baseAst, collectionPathById, previewData, sourceCollection.length, transforms.sourceBindingId, t, previewDocumentKind]);
 
   const selectedSourceOption = useMemo(
     () => sourceCollectionOptions.find((option) => option.value === transforms.sourceBindingId) ?? null,
