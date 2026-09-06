@@ -106,6 +106,8 @@ export type ResolvedContractBillingChargeFacts =
         baseRate: number | string | null;
         enableProration?: boolean | null;
         quantity?: number | string | null;
+        /** Explicit fixed pricing basis ('unit' recurring seats vs 'bundle'/NULL). */
+        pricingBasis?: 'unit' | 'bundle' | string | null;
       }>;
       fallbackService?: {
         serviceId: string;
@@ -175,6 +177,10 @@ export type ResolvedContractBillingChargeFacts =
         quantity: number | string;
         taxRateId?: string | null;
         currencyRate?: number | string | null;
+        /** Period-total report identity + revision (usage_period_totals) when
+         * this activity item is a period total rather than a dated entry. */
+        periodTotalId?: string | null;
+        periodTotalRevision?: number | string | null;
       }>;
     })
   | (ContractChargeFactsBase & {
