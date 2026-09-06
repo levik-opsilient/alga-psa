@@ -14,7 +14,7 @@ describe('durable comment publication across channels', () => {
     });
     vi.doMock('redis',()=>({createClient:()=>redis}));
     const {EventBus}=await import('./eventBus');
-    const bus=new EventBus();
+    const bus=EventBus.getInstance();
     const event={id:randomUUID(),eventType:'TICKET_COMMENT_ADDED',timestamp:new Date().toISOString(),payload:{tenantId:randomUUID(),ticketId:randomUUID(),userId:randomUUID(),comment:{id:randomUUID(),content:'PDF attached',author:'Test',isInternal:false}}};
     const global=vi.fn(async()=>undefined), email=vi.fn(async()=>undefined), internal=vi.fn(async()=>undefined);
     for(const [channel,handler] of [['global',global],['emailservice::v7',email],['internal-notifications',internal],['emailservice::v7',email]] as const) {

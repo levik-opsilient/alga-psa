@@ -144,6 +144,11 @@ const TENANT_TABLES_DELETION_ORDER: string[] = [
   // Ticket bundle mirrors (must be before comments due to FK on comments)
   'ticket_bundle_mirrors',
 
+  // Ticket comment attachment lifecycle (no FKs; rows reference comments,
+  // documents and tickets by id, so delete them before those tables)
+  'ticket_comment_attachment_challenges', 'ticket_comment_attachments',
+  'ticket_comment_email_deliveries',
+
   // Messages and comments
   // vectors and email_reply_tokens reference comments with NO ACTION, so they
   // must be deleted before comments to avoid FK violations.
