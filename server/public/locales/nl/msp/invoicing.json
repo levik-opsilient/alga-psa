@@ -1867,7 +1867,8 @@
         "transformsSource": "{{binding}} (transformatiebron)",
         "transformsOutput": "{{binding}} (transformatie-uitvoer)",
         "ticketGroups": "Gefactureerde tijd per ticket",
-        "timeEntries": "Gefactureerde tijdregistraties"
+        "timeEntries": "Gefactureerde tijdregistraties",
+        "ticketPresentationRows": "Kosten per ticket"
       },
       "presets": {
         "description": {
@@ -2136,7 +2137,8 @@
       "referenceMissing": "Het geselecteerde factuursjabloon of de klant bestaat niet meer. Vernieuw de pagina en probeer het opnieuw.",
       "duplicate": "Er bestaat al een factuursjabloon met deze instellingen.",
       "missingField": "Er ontbreekt een verplicht veld van het factuursjabloon.",
-      "missingFieldNamed": "Er ontbreekt een verplicht veld van het factuursjabloon: {{field}}."
+      "missingFieldNamed": "Er ontbreekt een verplicht veld van het factuursjabloon: {{field}}.",
+      "evaluationFailed": "Gegevensbinding van het sjabloon is mislukt: {{details}}"
     }
   },
   "periodTotal": {

@@ -1867,7 +1867,8 @@
         "transformsSource": "{{binding}} (Transformationsquelle)",
         "transformsOutput": "{{binding}} (Transformationsausgabe)",
         "ticketGroups": "Abgerechnete Zeit nach Ticket",
-        "timeEntries": "Abgerechnete Zeiteinträge"
+        "timeEntries": "Abgerechnete Zeiteinträge",
+        "ticketPresentationRows": "Leistungen nach Ticket"
       },
       "presets": {
         "description": {
@@ -2136,7 +2137,8 @@
       "referenceMissing": "Die ausgewählte Rechnungsvorlage oder der Kunde existiert nicht mehr. Bitte aktualisieren Sie die Seite und versuchen Sie es erneut.",
       "duplicate": "Eine Rechnungsvorlage mit diesen Einstellungen existiert bereits.",
       "missingField": "Erforderliches Feld der Rechnungsvorlage fehlt.",
-      "missingFieldNamed": "Erforderliches Feld der Rechnungsvorlage fehlt: {{field}}."
+      "missingFieldNamed": "Erforderliches Feld der Rechnungsvorlage fehlt: {{field}}.",
+      "evaluationFailed": "Datenbindung der Vorlage fehlgeschlagen: {{details}}"
     }
   },
   "periodTotal": {

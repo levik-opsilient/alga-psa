@@ -1917,7 +1917,8 @@
         "transformsSource": "{{binding}} (źródło transformacji)",
         "transformsOutput": "{{binding}} (wynik transformacji)",
         "ticketGroups": "Rozliczony czas według zgłoszeń",
-        "timeEntries": "Rozliczone wpisy czasu"
+        "timeEntries": "Rozliczone wpisy czasu",
+        "ticketPresentationRows": "Opłaty według zgłoszenia"
       },
       "presets": {
         "description": {
@@ -2186,7 +2187,8 @@
       "referenceMissing": "Wybrany szablon faktury lub klient już nie istnieje. Odśwież stronę i spróbuj ponownie.",
       "duplicate": "Szablon faktury o tych ustawieniach już istnieje.",
       "missingField": "Brakuje wymaganego pola szablonu faktury.",
-      "missingFieldNamed": "Brakuje wymaganego pola szablonu faktury: {{field}}."
+      "missingFieldNamed": "Brakuje wymaganego pola szablonu faktury: {{field}}.",
+      "evaluationFailed": "Powiązanie danych szablonu nie powiodło się: {{details}}"
     }
   },
   "periodTotal": {

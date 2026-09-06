@@ -1867,7 +1867,8 @@
         "transformsSource": "{{binding}} (origen de transformaciones)",
         "transformsOutput": "{{binding}} (salida de transformaciones)",
         "ticketGroups": "Tiempo facturado por ticket",
-        "timeEntries": "Entradas de tiempo facturadas"
+        "timeEntries": "Entradas de tiempo facturadas",
+        "ticketPresentationRows": "Cargos por ticket"
       },
       "presets": {
         "description": {
@@ -2136,7 +2137,8 @@
       "referenceMissing": "La plantilla de factura o el cliente seleccionado ya no existe. Actualice la página e inténtelo de nuevo.",
       "duplicate": "Ya existe una plantilla de factura con esa configuración.",
       "missingField": "Falta un campo obligatorio de la plantilla de factura.",
-      "missingFieldNamed": "Falta un campo obligatorio de la plantilla de factura: {{field}}."
+      "missingFieldNamed": "Falta un campo obligatorio de la plantilla de factura: {{field}}.",
+      "evaluationFailed": "Error en el enlace de datos de la plantilla: {{details}}"
     }
   },
   "periodTotal": {
