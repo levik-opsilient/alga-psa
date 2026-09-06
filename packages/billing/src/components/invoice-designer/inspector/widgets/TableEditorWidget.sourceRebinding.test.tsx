@@ -123,10 +123,21 @@ describe('TableEditorWidget source rebinding', () => {
     // The imported table round-trips its raw source binding until the user rebinds.
     expect(getExportedTable(exportSavedAst()).repeat.sourceBinding.bindingId).toBe('timeEntries');
 
+    // Import preserved the raw source binding id on the node — this is the key
+    // the change handler must remove (guards the absence check below against
+    // passing vacuously if the preservation mechanism ever moves).
+    const importedNode = useInvoiceDesignerStore.getState().nodes.find((entry) => entry.id === TABLE_ID);
+    expect(importedNode?.props.metadata).toHaveProperty('__astTableSourceBindingId', 'timeEntries');
+
     // The "All Line Items" option carries the collection PATH (`items`), the
     // same shape collectionBindingKey holds everywhere else.
     const { container } = render(<TableEditorHarness />);
     changeSourceBinding(container, 'items');
+
+    // The preserved import id must be REMOVED from the node (not set to
+    // undefined — patchOps rejects that), or export keeps preferring it.
+    const storeNode = useInvoiceDesignerStore.getState().nodes.find((entry) => entry.id === TABLE_ID);
+    expect(storeNode?.props.metadata ?? {}).not.toHaveProperty('__astTableSourceBindingId');
 
     const exported = exportSavedAst();
     const table = getExportedTable(exported);

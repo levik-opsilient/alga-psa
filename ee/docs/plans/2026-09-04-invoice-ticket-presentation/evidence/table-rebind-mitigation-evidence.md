@@ -20,7 +20,8 @@ Swept the designer (`packages/billing/src/components/invoice-designer`) for othe
 `packages/billing/src/components/invoice-designer/inspector/widgets/TableEditorWidget.sourceRebinding.test.tsx` — imports an AST containing a dynamic table bound to `timeEntries` (via `importTemplateAstToWorkspace` + the real designer store), renders the real `TableEditorWidget`, fires the source-binding select change (the widget's own `onValueChange` path), exports through `exportWorkspace()` → `exportWorkspaceToTemplateAst`, and asserts the persisted `repeat.sourceBinding.bindingId`:
 
 - rebind to All Line Items → `lineItems` (registered catalog binding, path `items`), stable across re-import;
-- with authored transforms, rebind to the transforms output → `timeEntries.transformed`.
+- with authored transforms, rebind to the transforms output → `timeEntries.transformed`;
+- the preserved `metadata.__astTableSourceBindingId` key is asserted present on the imported node and gone after the change (guards the export assertion against passing vacuously).
 
 ### Live repro (dev stack, port 3967, layout `d1f349bb-64f1-4fee-a54b-c7a821c63ea9`)
 
@@ -35,6 +36,13 @@ Screenshots: `/home/robert/alga-artifacts/invoice-ticket-rebind-mitigation-2026-
 ## Defect 2 — generic "Failed to render template using Wasm." for invalid bindings
 
 `renderTemplateOnServer` now classifies `TemplateEvaluationError` (missing/invalid bindings, from both evaluation and render) as an expected action error carrying the evaluator's diagnostic, on the standard `actionError` + `messageKey` localization seam (`msp/invoicing:errors.template.evaluationFailed`, added to all ten locales). `TemplateRenderer` now recognizes the action-error result shape — previously it destructured `{html, css}` off it blindly — and displays the localized diagnostic instead of the generic Wasm failure.
+
+### Live repro (dev stack, port 3967, layout `d1f349bb-64f1-4fee-a54b-c7a821c63ea9`)
+
+Deliberately broke the billed-time table's binding in the saved AST (DB update: `repeat.sourceBinding.bindingId` → `nonexistent.binding`, transforms output left intact so nothing resolves it), then opened the drafts preview (`/msp/billing?tab=invoicing&subtab=drafts&invoiceId=2bfcea7e-8bd8-42b0-b198-bb90880f2c4c&templateId=d1f349bb-…`):
+
+- Preview shows the evaluator's diagnostic, not the generic Wasm error: `Error: Template data binding failed: Collection "nonexistent.binding" (path "nonexistent.binding") is missing or is not an array.` — screenshot `wo-fix2-invalid-binding-diagnostic.png`.
+- Restored the original AST from backup (`fix2/templateAst-backup.json`); preview renders again with no error — screenshot `wo-fix2-restored-preview.png`.
 
 ## Verification
 
