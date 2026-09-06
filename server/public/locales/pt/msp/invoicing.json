@@ -2110,7 +2110,8 @@
       "referenceMissing": "O modelo de fatura ou o cliente selecionado não existe mais. Atualize a página e tente novamente.",
       "duplicate": "Já existe um modelo de fatura com essas configurações.",
       "missingField": "Falta um campo obrigatório do modelo de fatura.",
-      "missingFieldNamed": "Falta um campo obrigatório do modelo de fatura: {{field}}."
+      "missingFieldNamed": "Falta um campo obrigatório do modelo de fatura: {{field}}.",
+      "evaluationFailed": "Falha na vinculação de dados do modelo: {{details}}"
     }
   }
 }

@@ -2118,7 +2118,8 @@
       "referenceMissing": "Le modèle de facture ou le client sélectionné n’existe plus. Veuillez actualiser la page et réessayer.",
       "duplicate": "Un modèle de facture avec ces paramètres existe déjà.",
       "missingField": "Un champ obligatoire du modèle de facture est manquant.",
-      "missingFieldNamed": "Un champ obligatoire du modèle de facture est manquant : {{field}}."
+      "missingFieldNamed": "Un champ obligatoire du modèle de facture est manquant : {{field}}.",
+      "evaluationFailed": "Échec de la liaison des données du modèle : {{details}}"
     }
   }
 }

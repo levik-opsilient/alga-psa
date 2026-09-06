@@ -2118,7 +2118,8 @@
       "referenceMissing": "The selected invoice template or client no longer exists. Please refresh and try again.",
       "duplicate": "An invoice template with those settings already exists.",
       "missingField": "Missing required invoice template field.",
-      "missingFieldNamed": "Missing required invoice template field: {{field}}."
+      "missingFieldNamed": "Missing required invoice template field: {{field}}.",
+      "evaluationFailed": "Template data binding failed: {{details}}"
     }
   }
 }

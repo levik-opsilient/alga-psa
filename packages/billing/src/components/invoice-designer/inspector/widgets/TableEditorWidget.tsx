@@ -83,6 +83,7 @@ const getUniqueStrings = (values: Array<string | undefined | null>): string[] =>
 export const TableEditorWidget: React.FC<Props> = ({ node }) => {
   const { t } = useTranslation('msp/invoicing');
   const setNodeProp = useInvoiceDesignerStore((state) => state.setNodeProp);
+  const unsetNodeProp = useInvoiceDesignerStore((state) => state.unsetNodeProp);
   const nodes = useInvoiceDesignerStore((state) => state.nodes);
   const rootId = useInvoiceDesignerStore((state) => state.rootId);
   const transforms = useInvoiceDesignerStore((state) => state.transforms);
@@ -159,9 +160,15 @@ export const TableEditorWidget: React.FC<Props> = ({ node }) => {
       });
     }
 
+    // Catalog options carry the collection's data PATH, not its binding id:
+    // `metadata.collectionBindingKey` is a path everywhere else (AST import
+    // writes denormalized paths, presets write paths), and export registers
+    // the binding by path — so a raw id like `lineItems` would be registered
+    // as a bogus `collection.lineItems` path the evaluator cannot resolve.
+    // Ids that equal their path (timeEntries, ticketGroups, …) are unaffected.
     options.push(
       ...Object.entries(baseAst.bindings?.collections ?? {}).map(([bindingId, binding]) => ({
-        value: bindingId,
+        value: binding.path,
         label: humanizeCollectionBindingLabel(bindingId, binding.path, t),
       }))
     );
@@ -174,7 +181,7 @@ export const TableEditorWidget: React.FC<Props> = ({ node }) => {
     if (resolveDesignerDocumentKind(nodes) === 'invoice') {
       options.push(
         ...Object.entries(buildInvoiceTemplateBindings().collections ?? {}).map(([bindingId, binding]) => ({
-          value: bindingId,
+          value: binding.path,
           label: humanizeCollectionBindingLabel(bindingId, binding.path, t),
         }))
       );
@@ -399,7 +406,10 @@ export const TableEditorWidget: React.FC<Props> = ({ node }) => {
             options={collectionBindingOptions}
             value={sourceBindingId}
             onValueChange={(value: string) => {
-              setNodeProp(node.id, 'metadata.__astTableSourceBindingId', undefined, true);
+              // `setNodeProp(..., undefined)` is rejected by patchOps (non-json-value), which
+              // would leave the preserved AST binding id in place and silently discard the
+              // user's new selection on save — key removal must go through `unsetNodeProp`.
+              unsetNodeProp(node.id, 'metadata.__astTableSourceBindingId', true);
               setNodeProp(node.id, 'metadata.collectionBindingKey', value, true);
             }}
             size="sm"

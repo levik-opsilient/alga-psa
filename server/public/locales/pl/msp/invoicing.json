@@ -2160,7 +2160,8 @@
       "referenceMissing": "Wybrany szablon faktury lub klient już nie istnieje. Odśwież stronę i spróbuj ponownie.",
       "duplicate": "Szablon faktury o tych ustawieniach już istnieje.",
       "missingField": "Brakuje wymaganego pola szablonu faktury.",
-      "missingFieldNamed": "Brakuje wymaganego pola szablonu faktury: {{field}}."
+      "missingFieldNamed": "Brakuje wymaganego pola szablonu faktury: {{field}}.",
+      "evaluationFailed": "Powiązanie danych szablonu nie powiodło się: {{details}}"
     }
   }
 }

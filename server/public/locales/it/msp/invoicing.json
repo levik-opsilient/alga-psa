@@ -2110,7 +2110,8 @@
       "referenceMissing": "Il modello di fattura o il cliente selezionato non esiste più. Aggiornare la pagina e riprovare.",
       "duplicate": "Esiste già un modello di fattura con queste impostazioni.",
       "missingField": "Manca un campo obbligatorio del modello di fattura.",
-      "missingFieldNamed": "Manca un campo obbligatorio del modello di fattura: {{field}}."
+      "missingFieldNamed": "Manca un campo obbligatorio del modello di fattura: {{field}}.",
+      "evaluationFailed": "Associazione dei dati del modello non riuscita: {{details}}"
     }
   }
 }
