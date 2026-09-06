@@ -1599,6 +1599,11 @@
   "callLink": {
     "teamsCall": "Bellen in Microsoft Teams"
   },
+  "editor": {
+    "attachFiles": "Bestanden bijvoegen",
+    "uploadingFiles": "Bestanden uploaden…",
+    "fileUploadFailed": "Bestand uploaden mislukt."
+  },
   "emailPreferences": {
     "loading": "E-mailvoorkeuren laden…",
     "saving": "E-mailvoorkeuren opslaan…",

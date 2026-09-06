@@ -1599,6 +1599,11 @@
   "callLink": {
     "teamsCall": "⟦Ƈȧŀŀ īƞ Ḿīƈřȯşȯƒŧ Ŧḗȧḿş⟧"
   },
+  "editor": {
+    "attachFiles": "⟦Ȧŧŧȧƈħ ƒīŀḗş⟧",
+    "uploadingFiles": "⟦Ŭƥŀȯȧḓīƞɠ ƒīŀḗş…⟧",
+    "fileUploadFailed": "⟦Ƒīŀḗ ŭƥŀȯȧḓ ƒȧīŀḗḓ.⟧"
+  },
   "emailPreferences": {
     "loading": "⟦Ŀȯȧḓīƞɠ ḗḿȧīŀ ƥřḗƒḗřḗƞƈḗş…⟧",
     "saving": "⟦Şȧṽīƞɠ ḗḿȧīŀ ƥřḗƒḗřḗƞƈḗş…⟧",

@@ -1599,6 +1599,11 @@
   "callLink": {
     "teamsCall": "Chiama in Microsoft Teams"
   },
+  "editor": {
+    "attachFiles": "Allega file",
+    "uploadingFiles": "Caricamento dei file…",
+    "fileUploadFailed": "Caricamento del file non riuscito."
+  },
   "emailPreferences": {
     "loading": "Caricamento delle preferenze email…",
     "saving": "Salvataggio delle preferenze email…",
